@@ -41,6 +41,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Updater", "src\Updater\Upda
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TouchHelper", "src\TouchHelper\TouchHelper.vcxproj", "{05B51BB8-08CB-4907-884F-8E2AD6BF6052}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CLI", "src\CLI\CLI.vcxproj", "{B3A690A5-EF8E-48FE-AE0A-75940FCE549D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM64 = Debug|ARM64
@@ -97,6 +99,14 @@ Global
 		{05B51BB8-08CB-4907-884F-8E2AD6BF6052}.Release|ARM64.Build.0 = Release|ARM64
 		{05B51BB8-08CB-4907-884F-8E2AD6BF6052}.Release|x64.ActiveCfg = Release|x64
 		{05B51BB8-08CB-4907-884F-8E2AD6BF6052}.Release|x64.Build.0 = Release|x64
+		{B3A690A5-EF8E-48FE-AE0A-75940FCE549D}.Debug|ARM64.ActiveCfg = Debug|x64
+		{B3A690A5-EF8E-48FE-AE0A-75940FCE549D}.Debug|ARM64.Build.0 = Debug|x64
+		{B3A690A5-EF8E-48FE-AE0A-75940FCE549D}.Debug|x64.ActiveCfg = Debug|x64
+		{B3A690A5-EF8E-48FE-AE0A-75940FCE549D}.Debug|x64.Build.0 = Debug|x64
+		{B3A690A5-EF8E-48FE-AE0A-75940FCE549D}.Release|ARM64.ActiveCfg = Release|x64
+		{B3A690A5-EF8E-48FE-AE0A-75940FCE549D}.Release|ARM64.Build.0 = Release|x64
+		{B3A690A5-EF8E-48FE-AE0A-75940FCE549D}.Release|x64.ActiveCfg = Release|x64
+		{B3A690A5-EF8E-48FE-AE0A-75940FCE549D}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

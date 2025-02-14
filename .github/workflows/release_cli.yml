@@ -1,0 +1,28 @@
+name: cli_release
+
+on:
+  workflow_dispatch:
+  
+jobs:
+  build:
+    runs-on: windows-latest 
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: x64
+      - run: pip install conan
+      
+      - run: python .github/workflows/build_cli.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: magpie
+          path: magpie.zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: common
+          files: |
+            magpie.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
