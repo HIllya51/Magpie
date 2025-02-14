@@ -353,6 +353,7 @@ int WINAPI wWinMain(
     const auto Magpie_Core_CLI_Message_Exit = L"Magpie_Core_CLI_Message_Exit";
     const auto Magpie_Core_CLI_Message_Stop = L"Magpie_Core_CLI_Message_Stop";
     const auto Magpie_Core_CLI_Message_Start = L"Magpie_Core_CLI_Message_Start";
+    const auto Magpie_Core_CLI_Message_Start_WindowedMode = L"Magpie_Core_CLI_Message_Start_WindowedMode";
 
     const auto WNDCLS_Magpie_Core_CLI_Message = L"WNDCLS_Magpie_Core_CLI_Message";
     auto Magpie_notify_prepared_ok = L"Magpie_notify_prepared_ok_" + std::to_wstring(GetCurrentProcessId());
@@ -365,16 +366,18 @@ int WINAPI wWinMain(
         }
     });*/
     // Sleep(100);
-
-    _msgwindow.registmessage_P(Magpie_Core_CLI_Message_Start, [argv, &magrt](WPARAM wp, LPARAM lp)
-                               {
+    auto magstart = [argv, &magrt](WPARAM wp, LPARAM lp, bool windowed=false) {
         auto targethwnd = (HWND)lp;
         auto config = nlohmann::json::parse(std::ifstream(argv[0]));
         int profileindex = (int)wp;
         auto options = LoadMagOptions(config, profileindex);
         if (!options)return;
+        if (windowed)
+            options.value().IsWindowedMode(true);
         SetForegroundWindow(targethwnd);
-        magrt.Start(targethwnd, std::move(options.value())); });
+        magrt.Start(targethwnd, std::move(options.value())); };
+    _msgwindow.registmessage_P(Magpie_Core_CLI_Message_Start, magstart);
+    _msgwindow.registmessage_P(Magpie_Core_CLI_Message_Start_WindowedMode, [&](WPARAM wp, LPARAM lp) {magstart(wp,lp,true);});
     _msgwindow.registmessage(Magpie_Core_CLI_Message_ToggleOverlay, [&magrt]()
                              { magrt.ToggleOverlay(); });
     _msgwindow.registmessage(Magpie_Core_CLI_Message_Stop, [&magrt]()
