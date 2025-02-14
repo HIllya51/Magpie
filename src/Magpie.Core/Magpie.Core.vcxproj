@@ -45,6 +45,9 @@
       <HeaderFileOutput>$(GeneratedFilesDir)shaders\%(Filename).h</HeaderFileOutput>
       <ObjectFileOutput />
     </FxCompile>
+    <Manifest>
+      <AdditionalManifestFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">fuck.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="BackendDescriptorStore.h" />

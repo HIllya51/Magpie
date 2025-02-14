@@ -224,6 +224,7 @@
     <ClCompile Include="StepTimer.cpp">
       <Filter>Render</Filter>
     </ClCompile>
+    <ClCompile Include="CLI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\SimpleVS.hlsl">
