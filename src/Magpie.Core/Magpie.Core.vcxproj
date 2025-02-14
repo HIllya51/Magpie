@@ -18,7 +18,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -94,6 +94,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BackendDescriptorStore.cpp" />
+    <ClCompile Include="CLI.cpp" />
     <ClCompile Include="CursorManager.cpp" />
     <ClCompile Include="CursorDrawer.cpp" />
     <ClCompile Include="DesktopDuplicationFrameSource.cpp" />
