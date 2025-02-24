@@ -13,6 +13,7 @@
 #pragma warning(disable : 4312)
 #pragma warning(disable : 4100)
 #pragma warning(disable : 4267)
+#pragma comment(lib, "Shcore.lib")
 #pragma comment(lib, "Dwmapi.lib")
 #pragma comment(lib, "Magnification.lib")
 using namespace Magpie;
