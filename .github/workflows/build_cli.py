@@ -16,7 +16,7 @@ if not os.access(msbuildPath, os.X_OK):
 
 
 subprocess.run(
-    f'"{msbuildPath}" -restore -p:RestorePackagesConfig=true;Configuration=Release;Platform=x64;OutDir={os.getcwd()}\\publish\\x64\\ -t:Magpie_Core;Effects Magpie.sln'
+    f'"{msbuildPath}" -restore -p:RestorePackagesConfig=true;Configuration=Release;Platform=x64;OutDir={os.getcwd()}\\publish\\x64\\ -t:Magpie_Core;Effects;CLI Magpie.sln'
 )
 os.makedirs(f"ALL/Magpie", exist_ok=True)
 shutil.move("publish/x64/Magpie.Core.exe", f"ALL/Magpie")
