@@ -346,17 +346,6 @@ void AppSettings::SetShortcut(ShortcutAction action, const Shortcut& value) {
 	SaveAsync();
 }
 
-void AppSettings::IsAutoRestore(bool value) noexcept {
-	if (_isAutoRestore == value) {
-		return;
-	}
-
-	_isAutoRestore = value;
-	IsAutoRestoreChanged.Invoke(value);
-
-	SaveAsync();
-}
-
 void AppSettings::CountdownSeconds(uint32_t value) noexcept {
 	if (_countdownSeconds == value) {
 		return;
@@ -477,12 +466,12 @@ bool AppSettings::_Save(const _AppSettingsData& data) noexcept {
 	writer.StartObject();
 	writer.Key("scale");
 	writer.Uint(EncodeShortcut(data._shortcuts[(size_t)ShortcutAction::Scale]));
+	writer.Key("windowedModeScale");
+	writer.Uint(EncodeShortcut(data._shortcuts[(size_t)ShortcutAction::WindowedModeScale]));
 	writer.Key("overlay");
 	writer.Uint(EncodeShortcut(data._shortcuts[(size_t)ShortcutAction::Overlay]));
 	writer.EndObject();
 
-	writer.Key("autoRestore");
-	writer.Bool(data._isAutoRestore);
 	writer.Key("countdownSeconds");
 	writer.Uint(data._countdownSeconds);
 	writer.Key("developerMode");
@@ -636,13 +625,17 @@ void AppSettings::_LoadSettings(const rapidjson::GenericObject<true, rapidjson::
 			DecodeShortcut(scaleNode->value.GetUint(), _shortcuts[(size_t)ShortcutAction::Scale]);
 		}
 
+		auto windowedModeScaleNode = shortcutsObj.FindMember("windowedModeScale");
+		if (windowedModeScaleNode != shortcutsObj.MemberEnd() && windowedModeScaleNode->value.IsUint()) {
+			DecodeShortcut(windowedModeScaleNode->value.GetUint(), _shortcuts[(size_t)ShortcutAction::WindowedModeScale]);
+		}
+
 		auto overlayNode = shortcutsObj.FindMember("overlay");
 		if (overlayNode != shortcutsObj.MemberEnd() && overlayNode->value.IsUint()) {
 			DecodeShortcut(overlayNode->value.GetUint(), _shortcuts[(size_t)ShortcutAction::Overlay]);
 		}
 	}
 
-	JsonHelper::ReadBool(root, "autoRestore", _isAutoRestore);
 	if (!JsonHelper::ReadUInt(root, "countdownSeconds", _countdownSeconds, true)) {
 		// v0.10.0-preview1 使用 downCount
 		JsonHelper::ReadUInt(root, "downCount", _countdownSeconds);
@@ -914,6 +907,15 @@ bool AppSettings::_SetDefaultShortcuts() noexcept {
 		scaleShortcut.win = true;
 		scaleShortcut.shift = true;
 		scaleShortcut.code = 'A';
+
+		changed = true;
+	}
+
+	Shortcut& windowedModeScaleShortcut = _shortcuts[(size_t)ShortcutAction::WindowedModeScale];
+	if (windowedModeScaleShortcut.IsEmpty()) {
+		windowedModeScaleShortcut.win = true;
+		windowedModeScaleShortcut.shift = true;
+		windowedModeScaleShortcut.code = 'Q';
 
 		changed = true;
 	}

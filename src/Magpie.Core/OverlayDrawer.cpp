@@ -15,6 +15,7 @@
 #include "ImGuiFontsCacheManager.h"
 #include "ScalingWindow.h"
 #include <ShlObj.h>
+#include "CursorManager.h"
 
 using namespace std::chrono;
 
@@ -161,7 +162,7 @@ static SmallVector<uint32_t> GenerateTimelineColors(const std::vector<Renderer::
 
 OverlayDrawer::~OverlayDrawer() {
 	if (ScalingWindow::Get().Options().Is3DGameMode() && IsUIVisible()) {
-		HWND hwndSrc = ScalingWindow::Get().HwndSrc();
+		HWND hwndSrc = ScalingWindow::Get().SrcInfo().Handle();
 		EnableWindow(hwndSrc, TRUE);
 		// 此时用户通过热键退出缩放，应激活源窗口
 		Win32Helper::SetForegroundWindow(hwndSrc);
@@ -270,7 +271,7 @@ void OverlayDrawer::SetUIVisibility(bool value, bool noSetForeground) noexcept {
 			Win32Helper::SetForegroundWindow(hwndHost);
 
 			// 使源窗口无法接收用户输入
-			EnableWindow(ScalingWindow::Get().HwndSrc(), FALSE);
+			EnableWindow(ScalingWindow::Get().SrcInfo().Handle(), FALSE);
 		}
 
 		Logger::Get().Info("已开启叠加层");
@@ -286,7 +287,7 @@ void OverlayDrawer::SetUIVisibility(bool value, bool noSetForeground) noexcept {
 			SetWindowLongPtr(hwndHost, GWL_EXSTYLE, style | (WS_EX_TRANSPARENT | WS_EX_NOACTIVATE));
 
 			// 重新激活源窗口
-			HWND hwndSrc = ScalingWindow::Get().HwndSrc();
+			HWND hwndSrc = ScalingWindow::Get().SrcInfo().Handle();
 			EnableWindow(hwndSrc, TRUE);
 
 			if (!noSetForeground) {
@@ -809,6 +810,12 @@ void OverlayDrawer::_DrawFPS(uint32_t fps) noexcept {
 	ImGui::PopStyleVar();
 }
 
+static std::string RectToStr(const RECT& rect) noexcept {
+	return fmt::format("{},{},{},{} ({}x{})",
+		rect.left, rect.top, rect.right, rect.bottom,
+		rect.right - rect.left, rect.bottom - rect.top);
+}
+
 // 返回 true 表示应再渲染一次
 bool OverlayDrawer::_DrawUI(const SmallVector<float>& effectTimings, uint32_t fps) noexcept {
 	const ScalingOptions& options = ScalingWindow::Get().Options();
@@ -892,58 +899,92 @@ bool OverlayDrawer::_DrawUI(const SmallVector<float>& effectTimings, uint32_t fp
 	ImGui::TextUnformatted(fmt::format("{}: {} FPS", frameRateStr, fps).c_str());
 	ImGui::PopTextWrapPos();
 
+	const std::vector<Renderer::EffectInfo>& effectInfos = renderer.EffectInfos();
+	const uint32_t nEffect = (uint32_t)effectInfos.size();
+
+	SmallVector<_EffectDrawInfo, 4> effectDrawInfos(effectInfos.size());
+
+	{
+		uint32_t idx = 0;
+		for (uint32_t i = 0; i < nEffect; ++i) {
+			_EffectDrawInfo& drawInfo = effectDrawInfos[i];
+			drawInfo.info = &effectInfos[i];
+
+			uint32_t nPass = (uint32_t)drawInfo.info->passNames.size();
+			drawInfo.passTimings = { _lastestAvgEffectTimings.begin() + idx, nPass };
+			idx += nPass;
+
+			for (float t : drawInfo.passTimings) {
+				drawInfo.totalTime += t;
+			}
+		}
+	}
+
+	static bool showPasses = false;
+
+	// 开发者选项
+	if (options.IsDeveloperMode()) {
+		ImGui::Spacing();
+		if (ImGui::CollapsingHeader("开发者选项", ImGuiTreeNodeFlags_DefaultOpen)) {
+			bool showSwitchButton = false;
+			for (const _EffectDrawInfo& drawInfo : effectDrawInfos) {
+				// 某个效果有多个通道，显示切换按钮
+				if (drawInfo.passTimings.size() > 1) {
+					showSwitchButton = true;
+					break;
+				}
+			}
+			
+			if (showSwitchButton) {
+				const std::string& buttonStr = _GetResourceString(showPasses
+					? L"Overlay_Profiler_Timings_SwitchToEffects"
+					: L"Overlay_Profiler_Timings_SwitchToPasses");
+				if (ImGui::Button(buttonStr.c_str())) {
+					showPasses = !showPasses;
+					// 需要再次渲染以处理滚动条导致的布局变化
+					needRedraw = true;
+				}
+			} else {
+				showPasses = false;
+			}
+		}
+
+		ImGui::Spacing();
+		if (ImGui::CollapsingHeader("调试信息", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::TextUnformatted(StrHelper::Concat("源窗口矩形: ",
+				RectToStr(renderer.SrcRect())).c_str());
+			ImGui::TextUnformatted(StrHelper::Concat("缩放区域矩形: ",
+				RectToStr(renderer.DestRect())).c_str());
+			ImGui::TextUnformatted(StrHelper::Concat("交换链矩形: ",
+				RectToStr(ScalingWindow::Get().SwapChainRect())).c_str());
+			RECT scalingWndRect;
+			GetWindowRect(ScalingWindow::Get().Handle(), &scalingWndRect);
+			ImGui::TextUnformatted(StrHelper::Concat("缩放窗口矩形: ",
+				RectToStr(scalingWndRect)).c_str());
+
+			bool isTopMost = GetWindowExStyle(ScalingWindow::Get().Handle()) & WS_EX_TOPMOST;
+			ImGui::TextUnformatted(
+				StrHelper::Concat("缩放窗口置顶: ", isTopMost ? "是" : "否").c_str());
+
+			ImGui::TextUnformatted(StrHelper::Concat("已捕获光标: ",
+				ScalingWindow::Get().CursorManager().IsCursorCaptured() ? "是" : "否").c_str());
+
+			RECT cursorClip;
+			GetClipCursor(&cursorClip);
+			ImGui::TextUnformatted(StrHelper::Concat("光标限制区域: ",
+				RectToStr(cursorClip)).c_str());
+		}
+	} else {
+		showPasses = false;
+	}
+
 	ImGui::Spacing();
 	// 效果渲染用时
 	const std::string& timingsStr = _GetResourceString(L"Overlay_Profiler_Timings");
 	if (ImGui::CollapsingHeader(timingsStr.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-		const std::vector<Renderer::EffectInfo>& effectInfos = renderer.EffectInfos();
-		const uint32_t nEffect = (uint32_t)effectInfos.size();
-
-		SmallVector<_EffectDrawInfo, 4> effectDrawInfos(effectInfos.size());
-
-		{
-			uint32_t idx = 0;
-			for (uint32_t i = 0; i < nEffect; ++i) {
-				auto& effectTiming = effectDrawInfos[i];
-				effectTiming.info = &effectInfos[i];
-
-				uint32_t nPass = (uint32_t)effectTiming.info->passNames.size();
-				effectTiming.passTimings = { _lastestAvgEffectTimings.begin() + idx, nPass };
-				idx += nPass;
-
-				for (float t : effectTiming.passTimings) {
-					effectTiming.totalTime += t;
-				}
-			}
-		}
-
 		float effectsTotalTime = 0.0f;
 		for (const _EffectDrawInfo& drawInfo : effectDrawInfos) {
 			effectsTotalTime += drawInfo.totalTime;
-		}
-
-		bool showSwitchButton = false;
-		for (const _EffectDrawInfo& drawInfo : effectDrawInfos) {
-			// 某个效果有多个通道，显示切换按钮
-			if (drawInfo.passTimings.size() > 1) {
-				showSwitchButton = true;
-				break;
-			}
-		}
-
-		static bool showPasses = false;
-		if (showSwitchButton) {
-			ImGui::Spacing();
-			const std::string& buttonStr = _GetResourceString(showPasses
-				? L"Overlay_Profiler_Timings_SwitchToEffects"
-				: L"Overlay_Profiler_Timings_SwitchToPasses");
-			if (ImGui::Button(buttonStr.c_str())) {
-				showPasses = !showPasses;
-				// 需要再次渲染以处理滚动条导致的布局变化
-				needRedraw = true;
-			}
-		} else {
-			showPasses = false;
 		}
 
 		SmallVector<ImColor, 4> colors;

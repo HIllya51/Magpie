@@ -26,7 +26,8 @@ namespace Magpie {
 static SIZE CalcOutputSize(
 	const std::pair<std::string, std::string>& outputSizeExpr,
 	const EffectOption& option,
-	SIZE scalingWndSize,
+	bool treatFitAsFill,
+	SIZE swapChainSize,
 	SIZE inputSize,
 	mu::Parser& exprParser
 ) noexcept {
@@ -40,25 +41,28 @@ static SIZE CalcOutputSize(
 			outputSize.cy = std::lroundf(inputSize.cy * option.scale.second);
 			break;
 		}
-		case ScalingType::Fit:
-		{
-			const float fillScale = std::min(
-				float(scalingWndSize.cx) / inputSize.cx,
-				float(scalingWndSize.cy) / inputSize.cy
-			);
-			outputSize.cx = std::lroundf(inputSize.cx * fillScale * option.scale.first);
-			outputSize.cy = std::lroundf(inputSize.cy * fillScale * option.scale.second);
-			break;
-		}
 		case ScalingType::Absolute:
 		{
 			outputSize.cx = std::lroundf(option.scale.first);
 			outputSize.cy = std::lroundf(option.scale.second);
 			break;
 		}
+		case ScalingType::Fit:
+		{
+			if (!treatFitAsFill) {
+				const float fillScale = std::min(
+					float(swapChainSize.cx) / inputSize.cx,
+					float(swapChainSize.cy) / inputSize.cy
+				);
+				outputSize.cx = std::lroundf(inputSize.cx * fillScale * option.scale.first);
+				outputSize.cy = std::lroundf(inputSize.cy * fillScale * option.scale.second);
+				break;
+			}
+			[[fallthrough]];
+		}
 		case ScalingType::Fill:
 		{
-			outputSize = scalingWndSize;
+			outputSize = swapChainSize;
 			break;
 		}
 		default:
@@ -86,6 +90,7 @@ static SIZE CalcOutputSize(
 bool EffectDrawer::Initialize(
 	const EffectDesc& desc,
 	const EffectOption& option,
+	bool treatFitAsFill,
 	DeviceResources& deviceResources,
 	BackendDescriptorStore& descriptorStore,
 	ID3D11Texture2D** inOutTexture
@@ -103,8 +108,9 @@ bool EffectDrawer::Initialize(
 	exprParser.DefineConst("INPUT_WIDTH", inputSize.cx);
 	exprParser.DefineConst("INPUT_HEIGHT", inputSize.cy);
 
-	const SIZE scalingWndSize = Win32Helper::GetSizeOfRect(ScalingWindow::Get().WndRect());
-	const SIZE outputSize = CalcOutputSize(desc.GetOutputSizeExpr(), option, scalingWndSize, inputSize, exprParser);
+	const SIZE swapChainSize = Win32Helper::GetSizeOfRect(ScalingWindow::Get().SwapChainRect());
+	const SIZE outputSize = CalcOutputSize(desc.GetOutputSizeExpr(),
+		option, treatFitAsFill, swapChainSize, inputSize, exprParser);
 	if (outputSize.cx <= 0 || outputSize.cy <= 0) {
 		Logger::Get().Error("非法的输出尺寸");
 		return false;

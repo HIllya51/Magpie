@@ -3,6 +3,7 @@
 #include "ScalingOptions.h"
 #include "Win32Helper.h"
 #include "ScalingError.h"
+#include "SrcInfo.h"
 
 namespace Magpie {
 
@@ -28,16 +29,16 @@ public:
 
 	void ToggleOverlay() noexcept;
 
-	const RECT& WndRect() const noexcept {
-		return _wndRect;
+	const RECT& SwapChainRect() const noexcept {
+		return _swapChainRect;
 	}
 
 	const ScalingOptions& Options() const noexcept {
 		return _options;
 	}
 
-	HWND HwndSrc() const noexcept {
-		return _hwndSrc;
+	SrcInfo& SrcInfo() noexcept {
+		return _srcInfo;
 	}
 
 	class Renderer& Renderer() noexcept {
@@ -76,9 +77,9 @@ private:
 	ScalingWindow() noexcept;
 	~ScalingWindow() noexcept;
 
-	int _CheckSrcState() const noexcept;
+	bool _CheckSrcState() noexcept;
 
-	bool _CheckForeground(HWND hwndForeground) const noexcept;
+	bool _CheckForegroundFor3DGameMode(HWND hwndFore) const noexcept;
 
 	bool _DisableDirectFlip() noexcept;
 
@@ -86,22 +87,36 @@ private:
 
 	void _RemoveWindowProps() const noexcept;
 
+	static LRESULT CALLBACK _BorderHelperWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+	void _CreateBorderHelperWindows() noexcept;
+
 	void _CreateTouchHoleWindows() noexcept;
+
+	void _UpdateFrameMargins() const noexcept;
+
+	void _UpdateFocusState() const noexcept;
+
+	bool _IsBorderless() const noexcept;
 
 	winrt::DispatcherQueue _dispatcher{ nullptr };
 
-	RECT _wndRect{};
+	RECT _windowRect{};
+	RECT _swapChainRect{};
+
+	uint32_t _currentDpi = USER_DEFAULT_SCREEN_DPI;
+	uint32_t _topBorderThicknessInClient = 0;
 
 	ScalingOptions _options;
 	std::unique_ptr<class Renderer> _renderer;
 	std::unique_ptr<class CursorManager> _cursorManager;
 
-	HWND _hwndSrc = NULL;
-	RECT _srcWndRect{};
+	class SrcInfo _srcInfo;
 
 	wil::unique_hwnd _hwndDDF;
 	wil::unique_mutex_nothrow _exclModeMutex;
 
+	std::array<wil::unique_hwnd, 4> _hwndResizeHelpers{};
 	std::array<wil::unique_hwnd, 4> _hwndTouchHoles{};
 
 	ScalingError _runtimeError = ScalingError::NoError;
