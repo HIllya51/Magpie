@@ -21,4 +21,4 @@ subprocess.run(
 os.makedirs(f"ALL/Magpie", exist_ok=True)
 shutil.move("publish/x64/Magpie.Core.exe", f"ALL/Magpie")
 shutil.move("publish/x64/effects", f"ALL/Magpie")
-os.system(rf'"C:\Program Files\7-Zip\7z.exe" a -m0=LZMA -mx9 .\\magpie.zip .\\ALL')
+os.system(rf'"C:\Program Files\7-Zip\7z.exe" a -m0=LZMA -mx9 .\\magpie.zip .\\ALL\\Magpie')
