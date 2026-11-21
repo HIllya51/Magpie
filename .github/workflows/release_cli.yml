@@ -27,6 +27,28 @@ jobs:
         path: ~/.conan2/p
         key: Conan-${{ hashFiles('src/**/conanfile.txt') }}-${{ matrix.compiler }}-${{ matrix.platform }}
 
+    # GitHub 重新生成了 kuba-zip v0.3.2 的源码压缩包，ConanCenter 配方记录的 sha256 已过期，
+    # 无缓存的全新构建会校验失败。导出修正哈希后的本地配方以绕过；
+    # 若 ConanCenter 已修复（旧哈希不存在），此步骤只会导出官方配方，届时可删除。
+    - name: Patch kuba-zip recipe (stale sha256 in ConanCenter)
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $cci = "$env:RUNNER_TEMP/conan-center-index"
+        git clone --depth 1 --sparse --filter=blob:none https://github.com/conan-io/conan-center-index $cci
+        if ($LASTEXITCODE -ne 0) { throw "git clone 失败" }
+        git -C $cci sparse-checkout set recipes/kuba-zip
+        if ($LASTEXITCODE -ne 0) { throw "sparse-checkout 失败" }
+        $file = "$cci/recipes/kuba-zip/all/conandata.yml"
+        $content = Get-Content $file -Raw
+        if ($content.Contains('0c33740aec7a3913bca07df360420c19cac5e794e0f602f14f798cb2e6f710e5')) {
+            $content.Replace(
+                '0c33740aec7a3913bca07df360420c19cac5e794e0f602f14f798cb2e6f710e5',
+                'ebf489143d89761bec01353d2b3ea74b136ee5426a91a8b5bfbc0b685e49af7b'
+            ) | Set-Content $file -NoNewline
+        }
+        conan export "$cci/recipes/kuba-zip/all" --name=kuba-zip --version=0.3.2
+
     - run: python .github/workflows/build_cli.py
     - uses: actions/upload-artifact@v4
       with:
