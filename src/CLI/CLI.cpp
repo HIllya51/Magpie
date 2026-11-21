@@ -222,9 +222,6 @@ std::string SeriesOverlayOptions(const ScalingOptions& options) {
 
     nlohmann::json overlay;
     overlay["windows"] = config;
-    overlay["fullscreenInitialToolbarState"] = options.fullscreenInitialToolbarState;
-    overlay["windowedInitialToolbarState"] = options.windowedInitialToolbarState;
-    overlay["screenshotsDir"] = options.screenshotsDir;
     nlohmann::json _overlay;
     _overlay["overlay"] = overlay;
     return _overlay.dump();
@@ -265,8 +262,8 @@ std::optional<ScalingOptions> LoadMagOptions(const nlohmann::json& config, int p
     } else {
         options.minFrameRate = config["minFrameRate"];
     }
-    options.fullscreenInitialToolbarState = config["overlay"]["fullscreenInitialToolbarState"];
-    options.windowedInitialToolbarState = config["overlay"]["windowedInitialToolbarState"];
+    options.fullscreenInitialToolbarState = profile["fullscreenInitialToolbarState"];
+    options.windowedInitialToolbarState = profile["windowedInitialToolbarState"];
     options.multiMonitorUsage = profile["multiMonitorUsage"];
 	options.outputAlignment= profile["outputAlignment"];
     options.cursorInterpolationMode = profile["cursorInterpolationMode"];
@@ -310,13 +307,9 @@ std::optional<ScalingOptions> LoadMagOptions(const nlohmann::json& config, int p
 
     LoadOverlayOptions(options, config["overlay"]);
     options.showToast = [](HWND hwndTarget, std::wstring_view title, std::wstring_view msg) noexcept {
-        std::wstring text(title);
-        if (!text.empty()) {
-            text += L'\n';
-        }
-        text += msg;
-        auto atom = GlobalAddAtom(text.c_str());
-        PostMessage(HWND_BROADCAST, Magpie_Core_CLI_ToastMessage, (WPARAM)atom, 0);
+        PostMessage(HWND_BROADCAST, Magpie_Core_CLI_ToastMessage, 
+			(WPARAM)GlobalAddAtom(std::wstring(msg).c_str()),
+			(LPARAM)GlobalAddAtom(std::wstring(title).c_str()));
     };
 	options.showError = [](HWND hWnd, ScalingError error) noexcept {
         PostMessage(HWND_BROADCAST, Magpie_Core_CLI_ErrorMessage, (WPARAM)error, 0);
