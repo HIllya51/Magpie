@@ -14,8 +14,6 @@
 #include "Win32Helper.h"
 #include <ShlObj.h>
 
-using namespace std::chrono;
-
 namespace Magpie {
 
 static const char* COLOR_INDICATOR = "■";
@@ -350,6 +348,8 @@ SmallVector<ImWchar> OverlayDrawer::_BuildFontUI(
 		SetGlyphRanges(ranges, fontAtlas.GetGlyphRangesVietnamese());
 	} else if (language == L"fr") {
 		SetGlyphRanges(ranges, OverlayHelper::FRENCH_RANGES);
+	} else if (language == L"ar") {
+		SetGlyphRanges(ranges, OverlayHelper::ARABIC_RANGES);
 	} else {
 		// Basic Latin 使用默认字体
 		SetGlyphRanges(ranges, OverlayHelper::BASIC_LATIN_RANGES);
@@ -941,6 +941,7 @@ bool OverlayDrawer::_DrawProfiler(const SmallVector<float>& effectTimings, uint3
 	
 	// effectTimings 为空表示后端没有渲染新的帧
 	if (!effectTimings.empty()) {
+		using std::chrono::steady_clock;
 		steady_clock::time_point now = steady_clock::now();
 		if (_lastUpdateTime == steady_clock::time_point{}) {
 			// 后端渲染的第一帧
@@ -1299,7 +1300,8 @@ bool OverlayDrawer::_DrawProfiler(const SmallVector<float>& effectTimings, uint3
 }
 
 const std::string& OverlayDrawer::_GetResourceString(const std::wstring_view& key) noexcept {
-	static phmap::flat_hash_map<std::wstring_view, std::string> cache;
+	// 由于返回引用应确保值的地址稳定
+	static phmap::node_hash_map<std::wstring_view, std::string> cache;
 
 	if (auto it = cache.find(key); it != cache.end()) {
 		return it->second;

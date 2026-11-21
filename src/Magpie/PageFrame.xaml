@@ -31,7 +31,7 @@
 			</Grid.ColumnDefinitions>
 			<ContentControl x:Name="IconContainer"
 			                Grid.Column="0"
-			                Margin="0,6.5,16,0"
+			                Margin="0,4.5,16,0"
 			                Content="{x:Bind Icon, Mode=OneWay}"
 			                IsTabStop="False" />
 			<TextBlock Grid.Column="1"
@@ -44,42 +44,7 @@
 			                Grid.Column="2"
 			                VerticalContentAlignment="Center"
 			                Content="{x:Bind HeaderAction, Mode=OneWay}"
-			                IsTabStop="False">
-				<ContentControl.Resources>
-					<ResourceDictionary>
-						<ResourceDictionary.ThemeDictionaries>
-							<ResourceDictionary x:Key="Default">
-								<StaticResource x:Key="ButtonBackground"
-								                ResourceKey="SubtleFillColorTransparentBrush" />
-								<StaticResource x:Key="ButtonBackgroundPointerOver"
-								                ResourceKey="SubtleFillColorSecondaryBrush" />
-								<StaticResource x:Key="ButtonBackgroundPressed"
-								                ResourceKey="SubtleFillColorTertiaryBrush" />
-							</ResourceDictionary>
-							<ResourceDictionary x:Key="Light">
-								<StaticResource x:Key="ButtonBackground"
-								                ResourceKey="SubtleFillColorTransparentBrush" />
-								<StaticResource x:Key="ButtonBackgroundPointerOver"
-								                ResourceKey="SubtleFillColorSecondaryBrush" />
-								<StaticResource x:Key="ButtonBackgroundPressed"
-								                ResourceKey="SubtleFillColorTertiaryBrush" />
-							</ResourceDictionary>
-						</ResourceDictionary.ThemeDictionaries>
-
-						<Style BasedOn="{StaticResource DefaultButtonStyle}"
-						       TargetType="Button">
-							<Setter Property="Width" Value="{StaticResource PaneToggleButtonWidth}" />
-							<Setter Property="Height" Value="{StaticResource PaneToggleButtonHeight}" />
-							<Setter Property="Padding" Value="0" />
-							<Setter Property="BorderThickness" Value="0" />
-						</Style>
-
-						<Style TargetType="FontIcon">
-							<Setter Property="FontSize" Value="18" />
-						</Style>
-					</ResourceDictionary>
-				</ContentControl.Resources>
-			</ContentControl>
+			                IsTabStop="False" />
 		</Grid>
 		<!--  ScrollViewer 可以接受焦点，这使用户可以通过键盘滚动页面  -->
 		<!--  Padding 左右边距使用代码动态调整  -->
@@ -93,7 +58,6 @@
 		              VerticalScrollBarVisibility="Auto"
 		              ViewChanging="ScrollViewer_ViewChanging">
 			<ContentControl Grid.Column="0"
-			                MaxWidth="{StaticResource PageMaxWidth}"
 			                Margin="0,0,0,20"
 			                HorizontalContentAlignment="Stretch"
 			                VerticalContentAlignment="Stretch"

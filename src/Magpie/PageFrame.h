@@ -3,20 +3,15 @@
 
 namespace winrt::Magpie::implementation {
 
-struct PageFrame : PageFrameT<PageFrame>, wil::notify_property_changed_base<PageFrame> {
+struct PageFrame : PageFrameT<PageFrame> {
+#pragma warning(suppress: 26815) // PREFast 误把 hstring 当成指针
+	DEFINE_DEPENDENCY_PROPERTY(hstring, Title, _titleProperty)
+	DEFINE_DEPENDENCY_PROPERTY(IconElement, Icon, _iconProperty)
+	DEFINE_DEPENDENCY_PROPERTY(FrameworkElement, HeaderAction, _headerActionProperty)
+	DEFINE_DEPENDENCY_PROPERTY(IInspectable, MainContent, _mainContentProperty)
+
+public:
 	void InitializeComponent();
-
-	hstring Title() const noexcept { return _title; }
-	void Title(hstring value);
-
-	IconElement Icon() const { return _icon; }
-	void Icon(IconElement value);
-
-	FrameworkElement HeaderAction() const { return _headerAction; }
-	void HeaderAction(FrameworkElement value);
-
-	IInspectable MainContent() const { return _mainContent; }
-	void MainContent(IInspectable value);
 
 	void Loaded(IInspectable const&, RoutedEventArgs const&);
 
@@ -27,13 +22,11 @@ struct PageFrame : PageFrameT<PageFrame>, wil::notify_property_changed_base<Page
 	void ScrollViewer_KeyDown(IInspectable const& sender, Input::KeyRoutedEventArgs const& args);
 
 private:
-	void _UpdateIconContainer();
-	void _UpdateHeaderActionPresenter();
+	static void _RegisterDependencyProperties();
 
-	hstring _title;
-	IconElement _icon{ nullptr };
-	FrameworkElement _headerAction{ nullptr };
-	IInspectable _mainContent{ nullptr };
+	void _OnIconContainerChanged();
+	void _OnHeaderActionChanged();
+	void _OnMainContentChanged();
 };
 
 }

@@ -27,8 +27,15 @@
     <MinimumVisualStudioVersion>18.0</MinimumVisualStudioVersion>
     <VCProjectVersion>18.0</VCProjectVersion>
     <DefaultLanguage>en-US</DefaultLanguage>
+    <!-- 使用最新的 Windows SDK，目前至少需要 26100 -->
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <IntDir>$(SolutionDir)\obj\$(Platform)\$(Configuration)\$(MSBuildProjectName)\</IntDir>
     <OutBaseDir Condition="'$(OutBaseDir)' == ''">$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutBaseDir>
+    <!-- 使 clang-tidy 并行运行-->
+    <MaxNumberOfProcesses Condition="'$(MaxNumberOfProcesses)' == '' And $(RunCodeAnalysis) And $(UseClangCL)">0</MaxNumberOfProcesses>
+    <ClangTidyToolExeAdditionalOptions Condition="$(RunCodeAnalysis) And $(UseClangCL)">$(ClangTidyToolExeAdditionalOptions) --quiet</ClangTidyToolExeAdditionalOptions>
+    <!-- cppwinrt 经常有 clang-analyzer-core.CallAndMessage 警告，而且由于使用模板无法简单过滤 -->
+    <ClangTidyChecks>clang-analyzer-*, -clang-analyzer-core.CallAndMessage</ClangTidyChecks>
     <MajorVersion Condition="'$(MajorVersion)' == ''">0</MajorVersion>
     <MinorVersion Condition="'$(MinorVersion)' == ''">0</MinorVersion>
     <PatchVersion Condition="'$(PatchVersion)' == ''">0</PatchVersion>

@@ -150,7 +150,7 @@ enum class ScalingError {
 	CreateFenceFailed
 };
 
-enum class ScalingFlags : uint32_t {
+enum class ScalingFlags {
 	None,
 	WindowedMode = 1,
 	DebugMode = 1 << 1,
@@ -174,6 +174,7 @@ enum class ScalingFlags : uint32_t {
 	DeveloperMode = 1 << 18,
 	DisableTopmost = 1 << 19
 };
+// NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
 DEFINE_ENUM_FLAG_OPERATORS(ScalingFlags)
 
 struct ScalingOptions {
@@ -215,11 +216,12 @@ struct ScalingOptions {
 	ToolbarState windowedInitialToolbarState = ToolbarState::AutoHide;
 	float initialWindowedScaleFactor = 0.0f;
 	std::filesystem::path screenshotsDir;
+	std::string screenshotFilenameTemplate;
 
 	// 下面的成员支持在缩放时修改
 	OverlayOptions overlayOptions;
 
-	void (*showToast)(HWND hwndTarget, std::wstring_view msg) noexcept = nullptr;
+	void (*showToast)(HWND hwndTarget, std::wstring_view title, std::wstring_view msg) noexcept = nullptr;
 	void (*showError)(HWND hwndTarget, ScalingError error) noexcept = nullptr;
 	void (*save)(const ScalingOptions& options, HWND hwndScaling) noexcept = nullptr;
 

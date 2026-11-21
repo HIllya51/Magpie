@@ -2,6 +2,7 @@
 #include "Event.h"
 #include "Profile.h"
 #include "Shortcut.h"
+#include "Singleton.h"
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <winrt/Magpie.h>
@@ -16,13 +17,10 @@ enum class AppTheme {
 	System
 };
 
-class AppSettings {
+class AppSettings : public Singleton<AppSettings> {
+	friend Singleton<AppSettings>;
+
 public:
-	static AppSettings& Get() noexcept;
-
-	AppSettings(const AppSettings&) = delete;
-	AppSettings(AppSettings&&) = delete;
-
 	~AppSettings();
 
 	bool Initialize() noexcept;
@@ -267,28 +265,6 @@ public:
 		SaveAsync();
 	}
 
-	ToolbarState FullscreenInitialToolbarState() const noexcept {
-		return _fullscreenInitialToolbarState;
-	}
-
-	void FullscreenInitialToolbarState(ToolbarState value) noexcept {
-		_fullscreenInitialToolbarState = value;
-		SaveAsync();
-	}
-
-	ToolbarState WindowedInitialToolbarState() const noexcept {
-		return _windowedInitialToolbarState;
-	}
-
-	void WindowedInitialToolbarState(ToolbarState value) noexcept {
-		_windowedInitialToolbarState = value;
-		SaveAsync();
-	}
-
-	std::filesystem::path ScreenshotsDir() const noexcept;
-
-	void ScreenshotsDir(const std::filesystem::path& value) noexcept;
-
 	phmap::flat_hash_map<std::string, OverlayWindowOption>& OverlayWindowOptions() noexcept {
 		return _overlayWindowOptions;
 	}
@@ -300,20 +276,21 @@ public:
 	Event<bool> IsAutoCheckForUpdatesChanged;
 
 private:
-	AppSettings() = default;
+	AppSettings();
 
 	void _UpdateWindowPlacement() noexcept;
 
 	rapidjson::StringBuffer _WriteConfigJson() const noexcept;
 
 	void _LoadSettings(const rapidjson::GenericObject<true, rapidjson::Value>& root) noexcept;
+
 	bool _LoadProfile(
 		const rapidjson::GenericObject<true, rapidjson::Value>& profileObj,
 		Profile& profile,
 		bool isDefault = false
 	) const noexcept;
-	bool _SetDefaultShortcuts() noexcept;
-	void _SetDefaultScalingModes() noexcept;
+
+	void _SetInitialSettings() noexcept;
 
 	bool _UpdateConfigPath(std::filesystem::path* existingConfigPath = nullptr) noexcept;
 
@@ -348,14 +325,9 @@ private:
 
 	float _minFrameRate = 10.0f;
 
-	ToolbarState _fullscreenInitialToolbarState = ToolbarState::AutoHide;
-	ToolbarState _windowedInitialToolbarState = ToolbarState::AutoHide;
-	// 为空表示 FOLDERID_Screenshots，支持绝对路径和相对路径
-	std::filesystem::path _screenshotsDir;
-
 	phmap::flat_hash_map<std::string, OverlayWindowOption> _overlayWindowOptions;
 
-	std::atomic<bool> _isSaving = false;
+	std::atomic<bool> _isSaving;
 	bool _isPortableMode = false;
 	bool _isAlwaysRunAsAdmin = false;
 	bool _isDeveloperMode = false;

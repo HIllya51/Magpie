@@ -64,7 +64,7 @@ static bool IsCandidateWindow(HWND hWnd) noexcept {
 	if (appxReader.Initialize(hWnd)) {
 		return ProfileService::Get().TestNewProfile(true, appxReader.AUMID(), className);
 	} else {
-		std::wstring fileName = Win32Helper::GetWindowPath(hWnd);
+		std::wstring fileName = Win32Helper::GetWindowExePath(hWnd);
 		if (fileName.empty()) {
 			return false;
 		}
@@ -125,8 +125,7 @@ void NewProfileViewModel::PrepareForOpen() {
 
 	_candidateWindows = single_threaded_vector(std::move(items));
 	RaisePropertyChanged(L"CandidateWindows");
-	RaisePropertyChanged(L"IsNoCandidateWindow");
-	RaisePropertyChanged(L"IsAnyCandidateWindow");
+	RaisePropertyChanged(L"HasCandidateWindow");
 
 	CandidateWindowIndex(-1);
 	if (candidateWindows.size() == 1) {

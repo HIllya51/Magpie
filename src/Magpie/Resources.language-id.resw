@@ -126,7 +126,7 @@
   <data name="ShortcutDialog_Save" xml:space="preserve">
     <value>Simpan</value>
   </data>
-  <data name="ShortcutDialog_Description.Text" xml:space="preserve">
+  <data name="ShortcutDialogContent_Description.Text" xml:space="preserve">
     <value>Tekan kombinasi tombol untuk mengganti pintasan ini</value>
   </data>
   <data name="Root_About.Content" xml:space="preserve">
@@ -216,14 +216,11 @@
   <data name="Settings_Launch.Header" xml:space="preserve">
     <value>Jalankan</value>
   </data>
-  <data name="ScalingModes_General_Export.Text" xml:space="preserve">
+  <data name="ScalingModes_Export.Text" xml:space="preserve">
     <value>Ekspor</value>
   </data>
-  <data name="ScalingModes_General_Import.Text" xml:space="preserve">
+  <data name="ScalingModes_Import.Text" xml:space="preserve">
     <value>Impor</value>
-  </data>
-  <data name="ScalingModes_General_MoreOptions.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
-    <value>Opsi lainnya</value>
   </data>
   <data name="Settings_Launch_AlwaysRunAsAdmin.Header" xml:space="preserve">
     <value>Selalu jalan sebagai administrator</value>
@@ -345,22 +342,22 @@
   <data name="ScalingModes_ScaleFlyout_Type.Text" xml:space="preserve">
     <value>Tipe</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Absolute" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Absolute.Name" xml:space="preserve">
     <value>Absolut</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Factor" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Factor.Name" xml:space="preserve">
     <value>Faktor</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Fill" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Fill.Name" xml:space="preserve">
     <value>Isi</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Fill_Description" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Fill.Desc" xml:space="preserve">
     <value>Isi layar, gambar mungkin meregang</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Fit" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Fit.Name" xml:space="preserve">
     <value>Pas</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Fit_Description" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Fit.Desc" xml:space="preserve">
     <value>Atur faktor penskalaan setelah mengisi layar dengan penskalaan proporsional</value>
   </data>
   <data name="Profile_General.Header" xml:space="preserve">
@@ -384,7 +381,7 @@
   <data name="Profile_General_ScalingMode.Header" xml:space="preserve">
     <value>Mode penskalaan</value>
   </data>
-  <data name="Profile_Launch.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+  <data name="Profile_Launch.Text" xml:space="preserve">
     <value>Jalankan</value>
   </data>
   <data name="Home_Activation_Timer_Cancel" xml:space="preserve">
@@ -393,7 +390,7 @@
   <data name="ShortcutDialog_InUse" xml:space="preserve">
     <value>Sudah dipakai</value>
   </data>
-  <data name="ShortcutDialog_Tip.Text" xml:space="preserve">
+  <data name="ShortcutDialogContent_Tip.Text" xml:space="preserve">
     <value>Hanya pintasan yang berawal dengan tombol Windows, Ctrl, Alt, atau Shift yang berlaku.</value>
   </data>
   <data name="ScalingModes_ScaleFlyout_HeightFactor.Text" xml:space="preserve">
@@ -411,10 +408,10 @@
   <data name="ScalingModes_NewScalingModeFlyout_CopyFrom.Text" xml:space="preserve">
     <value>Salin dari</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Factor_Description" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Factor.Desc" xml:space="preserve">
     <value>Atur faktor penskalaan relatif terhadap gambar input</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Absolute_Description" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Absolute.Desc" xml:space="preserve">
     <value>Atur ukuran setelah penskalaan</value>
   </data>
   <data name="Profile_General_Multimonitor_All.Content" xml:space="preserve">
@@ -432,10 +429,10 @@
   <data name="Profile_MoreOptions_Delete.Text" xml:space="preserve">
     <value>Hapus</value>
   </data>
-  <data name="Profile_MoreOptions_DeleteFlyout_Delete.Text" xml:space="preserve">
+  <data name="DeleteConfirmationFlyoutContent_Delete.Text" xml:space="preserve">
     <value>Hapus</value>
   </data>
-  <data name="Profile_MoreOptions_DeleteFlyout_Title.Text" xml:space="preserve">
+  <data name="Profile_MoreOptions_DeleteFlyout.Text" xml:space="preserve">
     <value>Apakah anda yakin mau menghapus profil ini?</value>
   </data>
   <data name="Profile_MoreOptions_OpenProgramLocation.Text" xml:space="preserve">
@@ -598,7 +595,7 @@
     <value>Pemberitahuan dan pop-up dari aplikasi tertentu akan diblokir</value>
   </data>
   <data name="Home_Advanced_SimulateExclusiveFullscreen.Header" xml:space="preserve">
-    <value>Mensimulasikan layar penuh eksklusif saat melakukan penskalaan</value>
+    <value>Simulasikan layar penuh eksklusif</value>
   </data>
   <data name="Home_Advanced_DeveloperOptions.Description" xml:space="preserve">
     <value>Pengaturan ini hanya untuk penggunaan pengembangan</value>
@@ -868,16 +865,16 @@
   <data name="Home_Toolbar.Header" xml:space="preserve">
     <value>Bilah alat</value>
   </data>
-  <data name="Home_Toolbar_InitialState.Header" xml:space="preserve">
+  <data name="Profile_Toolbar_InitialState.Header" xml:space="preserve">
     <value>Status awal bilah alat</value>
   </data>
-  <data name="Home_Toolbar_InitialState_AlwaysShow.Content" xml:space="preserve">
+  <data name="Profile_Toolbar_InitialState_AlwaysShow.Content" xml:space="preserve">
     <value>Selalu tampilkan</value>
   </data>
-  <data name="Home_Toolbar_InitialState_AutoHide.Content" xml:space="preserve">
+  <data name="Profile_Toolbar_InitialState_AutoHide.Content" xml:space="preserve">
     <value>Sembunyikan otomatis</value>
   </data>
-  <data name="Home_Toolbar_InitialState_Off.Content" xml:space="preserve">
+  <data name="Profile_Toolbar_InitialState_Off.Content" xml:space="preserve">
     <value>Nonaktif</value>
   </data>
   <data name="Home_Toolbar_StateToggle.Header" xml:space="preserve">
@@ -913,10 +910,10 @@
   <data name="Profile_General_3DGameMode.Description" xml:space="preserve">
     <value>Mengaktifkan optimasi untuk game 3D, tetapi tidak kompatibel dengan bilah alat dan penskalaan berjendela</value>
   </data>
-  <data name="Home_Toolbar_ScreenshotSaveDirectory.Header" xml:space="preserve">
+  <data name="Profile_Toolbar_ScreenshotSaveDirectory.Header" xml:space="preserve">
     <value>Direktori penyimpanan tangkapan layar</value>
   </data>
-  <data name="Home_Toolbar_ScreenshotSaveDirectory_Change.Content" xml:space="preserve">
+  <data name="Profile_Toolbar_ScreenshotSaveDirectory_Change.Content" xml:space="preserve">
     <value>Ubah</value>
   </data>
   <data name="Dialog_SelectScreenshotSaveDirectory_Title" xml:space="preserve">
@@ -924,9 +921,6 @@
   </data>
   <data name="Message_ScreenshotSaved" xml:space="preserve">
     <value>Tangkapan layar disimpan sebagai {}</value>
-  </data>
-  <data name="Message_ScreenshotFailed" xml:space="preserve">
-    <value>Tangkapan layar gagal.</value>
   </data>
   <data name="Overlay_Toolbar_TakeScreenshot_Description" xml:space="preserve">
     <value>Klik kanan untuk mengekspor hasil antara</value>
@@ -973,10 +967,10 @@
   <data name="Overlay_Toolbar_SwitchToWindowed" xml:space="preserve">
     <value>Beralih ke Penskalaan Berjendela</value>
   </data>
-  <data name="Home_Toolbar_InitialState_Fullscreen.Header" xml:space="preserve">
+  <data name="Profile_Toolbar_InitialState_Fullscreen.Header" xml:space="preserve">
     <value>Penskalaan layar penuh</value>
   </data>
-  <data name="Home_Toolbar_InitialState_Windowed.Header" xml:space="preserve">
+  <data name="Profile_Toolbar_InitialState_Windowed.Header" xml:space="preserve">
     <value>Penskalaan berjendela</value>
   </data>
   <data name="Message_ExportScalingModesFailed" xml:space="preserve">
@@ -1053,5 +1047,89 @@
   </data>
   <data name="Home_Advanced_DeveloperOptions_DisableTopmost.Content" xml:space="preserve">
     <value>Nonaktifkan selalu-di-atas</value>
+  </data>
+  <data name="Home_Toolbar_TakeScreenshot.Header" xml:space="preserve">
+    <value>Pintasan tangkapan layar</value>
+  </data>
+  <data name="Home_Toolbar_TakeScreenshot_ShortcutControl.Title" xml:space="preserve">
+    <value>Pintasan tangkapan layar</value>
+  </data>
+  <data name="Message_ScreenshotFailed_Title" xml:space="preserve">
+    <value>Tangkapan layar gagal</value>
+  </data>
+  <data name="Message_ScreenshotFailed_InvalidDirectory" xml:space="preserve">
+    <value>Direktori penyimpanan tangkapan layar tidak valid.</value>
+  </data>
+  <data name="Message_ScreenshotFailed_InvalidFilenameTemplate" xml:space="preserve">
+    <value>Format nama file tangkapan layar tidak valid.</value>
+  </data>
+  <data name="Message_ScreenshotFailed_InternalError" xml:space="preserve">
+    <value>Terjadi kesalahan internal. Silakan lihat log untuk detail selengkapnya.</value>
+  </data>
+  <data name="Home_Advanced_KeepScreenOn.Header" xml:space="preserve">
+    <value>Biarkan layar tetap menyala saat penskalaan</value>
+  </data>
+  <data name="Profile_Toolbar.Header" xml:space="preserve">
+    <value>Bilah alat</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate.Header" xml:space="preserve">
+    <value>Format nama file tangkapan layar</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate.Description" xml:space="preserve">
+    <value>Akhiran numerik akan ditambahkan secara otomatis pada nama file duplikat</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_TipButton.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Tampilkan parameter yang tersedia</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_Tip_Header.Text" xml:space="preserve">
+    <value>Parameter yang tersedia</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_Tip_WindowTitle.Text" xml:space="preserve">
+    <value>Judul jendela</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_Tip_WindowTitle2.Text" xml:space="preserve">
+    <value>Judul jendela, dibatasi hingga n karakter</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_Tip_ProcessName.Text" xml:space="preserve">
+    <value>Nama proses</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_Tip_ProcessName2.Text" xml:space="preserve">
+    <value>Nama proses, dibatasi hingga n karakter</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_Tip_Year.Text" xml:space="preserve">
+    <value>Tahun</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_Tip_ShortYear.Text" xml:space="preserve">
+    <value>Dua digit terakhir tahun</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_Tip_Month.Text" xml:space="preserve">
+    <value>Bulan</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_Tip_Day.Text" xml:space="preserve">
+    <value>Hari</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_Tip_Hour.Text" xml:space="preserve">
+    <value>Jam (format 24 jam)</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_Tip_Minute.Text" xml:space="preserve">
+    <value>Menit</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_Tip_Second.Text" xml:space="preserve">
+    <value>Detik</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_Tip_Millisecond.Text" xml:space="preserve">
+    <value>Milidetik</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplate_Tip_Escape.Text" xml:space="preserve">
+    <value>Tanda persen literal (%)</value>
+  </data>
+  <data name="Profile_Toolbar_ScreenshotFilenameTemplateErrorInfoBar.Title" xml:space="preserve">
+    <value>Nama file berisi karakter tidak valid</value>
+  </data>
+  <data name="Root_ProfileFlyout_Launch.Text" xml:space="preserve">
+    <value>Luncurkan</value>
+  </data>
+  <data name="Root_ProfileFlyout_DeleteConfirmationText" xml:space="preserve">
+    <value>Apakah Anda yakin ingin menghapus "{}"?</value>
   </data>
 </root>

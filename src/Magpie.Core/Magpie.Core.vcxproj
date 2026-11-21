@@ -10,7 +10,6 @@
     <CppWinRTVerbosity>low</CppWinRTVerbosity>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{0e5205ae-dfa9-4cb8-b662-e43cd6512e2a}</ProjectGuid>
-    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
     <OutDir>$(OutBaseDir)</OutDir>
     <GeneratedFilesDir>$(IntDir)\Generated Files\</GeneratedFilesDir>
   </PropertyGroup>
@@ -30,6 +29,7 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
+      <PreprocessorDefinitions>IMGUI_DISABLE_DEFAULT_FONT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <FxCompile>
@@ -42,6 +42,8 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\AppXReader.h" />
+    <ClInclude Include="include\ScreenshotFilenameTemplateHelper.h" />
     <ClInclude Include="KeepScreenOnHelper.h" />
     <ClInclude Include="BackendDescriptorStore.h" />
     <ClInclude Include="CompSwapchainPresenter.h" />
@@ -63,6 +65,7 @@
     <ClInclude Include="ImGuiBackend.h" />
     <ClInclude Include="ImGuiFontsCacheManager.h" />
     <ClInclude Include="include\LocalizationService.h" />
+    <ClInclude Include="LruMemoryCache.h" />
     <ClInclude Include="OverlayHelper.h" />
     <ClInclude Include="ImGuiImpl.h" />
     <ClInclude Include="include\DirectXHelper.h" />
@@ -71,7 +74,7 @@
     <ClInclude Include="include\ScalingOptions.h" />
     <ClInclude Include="include\ScalingRuntime.h" />
     <ClInclude Include="include\Win32Helper.h" />
-    <ClInclude Include="include\WindowBase.h" />
+    <ClInclude Include="include\BaseWindow.h" />
     <ClInclude Include="include\WindowHelper.h" />
     <ClInclude Include="include\Event.h" />
     <ClInclude Include="OverlayDrawer.h" />
@@ -79,7 +82,6 @@
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="ScalingWindow.h" />
-    <ClInclude Include="ScreenshotHelper.h" />
     <ClInclude Include="SrcTracker.h" />
     <ClInclude Include="StepTimer.h" />
     <ClInclude Include="AdaptivePresenter.h" />
@@ -87,6 +89,7 @@
     <ClInclude Include="YasHelper.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AppXReader.cpp" />
     <ClCompile Include="KeepScreenOnHelper.cpp" />
     <ClCompile Include="BackendDescriptorStore.cpp" />
     <ClCompile Include="CompSwapchainPresenter.cpp" />
@@ -119,7 +122,7 @@
     <ClCompile Include="ScalingOptions.cpp" />
     <ClCompile Include="ScalingRuntime.cpp" />
     <ClCompile Include="ScalingWindow.cpp" />
-    <ClCompile Include="ScreenshotHelper.cpp" />
+    <ClCompile Include="ScreenshotFilenameTemplateHelper.cpp" />
     <ClCompile Include="SrcTracker.cpp" />
     <ClCompile Include="StepTimer.cpp" />
     <ClCompile Include="AdaptivePresenter.cpp" />

@@ -1,23 +1,20 @@
 #pragma once
+#include "BaseWindow.h"
 #include "KeepScreenOnHelper.h"
 #include "ScalingOptions.h"
+#include "Singleton.h"
 #include "SrcTracker.h"
-#include "WindowBase.h"
 
 namespace Magpie {
 
 class CursorManager;
 
-class ScalingWindow final : public WindowBaseT<ScalingWindow> {
-	using base_type = WindowBaseT<ScalingWindow>;
+class ScalingWindow final : public BaseWindow<ScalingWindow>, public Singleton<ScalingWindow> {
+	using base_type = BaseWindow<ScalingWindow>;
 	friend base_type;
+	friend Singleton<ScalingWindow>;
 
 public:
-	static ScalingWindow& Get() noexcept {
-		static ScalingWindow instance;
-		return instance;
-	}
-
 	// 用于检查当前缩放是否结束
 	static uint32_t RunId() noexcept {
 		return _runId.load(std::memory_order_relaxed);
@@ -87,8 +84,12 @@ public:
 		return _isResizingOrMoving;
 	}
 
+	void ShowToast(std::wstring_view title, std::wstring_view msg) const noexcept {
+		_options.showToast(Handle(), title, msg);
+	}
+
 	void ShowToast(std::wstring_view msg) const noexcept {
-		_options.showToast(Handle(), msg);
+		ShowToast({}, msg);
 	}
 
 	void ShowError(ScalingError error) const noexcept {
@@ -166,7 +167,7 @@ private:
 
 	void _DelayedStop(bool onSrcHung = false, bool onSrcRepositioning = false) const noexcept;
 
-	static inline std::atomic<uint32_t> _runId = 0;
+	static inline std::atomic<uint32_t> _runId;
 	static inline winrt::DispatcherQueue _dispatcher{ nullptr };
 
 	RECT _windowRect{};
@@ -184,7 +185,7 @@ private:
 
 	class SrcTracker _srcTracker;
 
-	KeepScreenOnHelper::unique_cancel _keepScreenOn;
+	KeepScreenOnHelper::Guard _keepScreenOnGuard;
 	wil::unique_mutex_nothrow _exclModeMutex;
 
 	std::array<wil::unique_hwnd, 4> _hwndResizeHelpers{};

@@ -75,12 +75,9 @@ void serialize(Archive& ar, EffectDesc& o) {
 	ar& o.name& o.params& o.textures& o.samplers& o.passes& o.flags;
 }
 
-static constexpr uint32_t MAX_CACHE_COUNT = 127;
-
 // 缓存版本
 // 当缓存文件结构有更改时更新它，使旧缓存失效
 static constexpr uint32_t EFFECT_CACHE_VERSION = 15;
-
 
 static std::wstring GetLinearEffectName(std::wstring_view effectName) {
 	std::wstring result(effectName);
@@ -98,59 +95,6 @@ static std::wstring GetCacheFileName(std::wstring_view linearEffectName, uint32_
 	return fmt::format(L"{}\\{}_{:04x}_{:016x}", CommonSharedConstants::CACHE_DIR, linearEffectName, flags, hash);
 }
 
-void EffectCacheManager::_AddToMemCache(const std::wstring& cacheFileName, std::string& key, const EffectDesc& desc) {
-	auto lock = _lock.lock_exclusive();
-
-	_memCache[cacheFileName] = _MemCacheItem{
-		.key = std::move(key),
-		.effectDesc = desc,
-		.lastAccess = ++_lastAccess
-	};
-
-	if (_memCache.size() > MAX_CACHE_COUNT) {
-		assert(_memCache.size() == MAX_CACHE_COUNT + 1);
-
-		// 清理一半较旧的内存缓存
-		std::array<uint32_t, MAX_CACHE_COUNT + 1> access{};
-		std::transform(_memCache.begin(), _memCache.end(), access.begin(),
-			[](const auto& pair) {return pair.second.lastAccess; });
-
-		auto midIt = access.begin() + access.size() / 2;
-		std::nth_element(access.begin(), midIt, access.end());
-		const uint32_t mid = *midIt;
-
-		for (auto it = _memCache.begin(); it != _memCache.end();) {
-			if (it->second.lastAccess < mid) {
-				it = _memCache.erase(it);
-			} else {
-				++it;
-			}
-		}
-
-		Logger::Get().Info("已清理内存缓存");
-	}
-}
-
-bool EffectCacheManager::_LoadFromMemCache(const std::wstring& cacheFileName, std::string_view key, EffectDesc& desc) {
-	auto lock = _lock.lock_exclusive();
-
-	auto it = _memCache.find(cacheFileName);
-	if (it != _memCache.end()) {
-		_MemCacheItem& cacheItem = it->second;
-
-		// 防止哈希碰撞
-		if (cacheItem.key != key) {
-			return false;
-		}
-
-		desc = cacheItem.effectDesc;
-		cacheItem.lastAccess = ++_lastAccess;
-		Logger::Get().Info(StrHelper::Concat("已读取缓存 ", StrHelper::UTF16ToUTF8(cacheFileName)));
-		return true;
-	}
-	return false;
-}
-
 bool EffectCacheManager::Load(
 	std::wstring_view effectName,
 	uint32_t flags,
@@ -162,9 +106,15 @@ bool EffectCacheManager::Load(
 
 	std::wstring cacheFileName = GetCacheFileName(GetLinearEffectName(effectName), flags, hash);
 
-	if (_LoadFromMemCache(cacheFileName, key, desc)) {
-		return true;
+	{
+		auto lk = _lock.lock_exclusive();
+
+		if (const EffectDesc* cache = _memCache.Find(cacheFileName)) {
+			desc = *cache;
+			return true;
+		}
 	}
+	
 
 	if (!Win32Helper::FileExists(cacheFileName.c_str())) {
 		return false;
@@ -200,9 +150,11 @@ bool EffectCacheManager::Load(
 		return false;
 	}
 
-	_AddToMemCache(cacheFileName, cachedKey, desc);
-
-	Logger::Get().Info(StrHelper::Concat("已读取缓存 ", StrHelper::UTF16ToUTF8(cacheFileName)));
+	{
+		auto lk = _lock.lock_exclusive();
+		_memCache.Add(cacheFileName, desc);
+	}
+	
 	return true;
 }
 
@@ -229,72 +181,69 @@ void EffectCacheManager::Save(
 		return;
 	}
 
-	if (!CreateDirectory(CommonSharedConstants::CACHE_DIR, nullptr)) {
-		if (GetLastError() != ERROR_ALREADY_EXISTS) {
-			Logger::Get().Win32Error("创建 cache 文件夹失败");
-			return;
-		}
+	if (!Win32Helper::CreateDir(CommonSharedConstants::CACHE_DIR)) {
+		Logger::Get().Error("创建 cache 文件夹失败");
+		return;
+	}
 
-		// 清理缓存
-		WIN32_FIND_DATA findData{};
-		wil::unique_hfind hFind(FindFirstFileEx(
-			StrHelper::Concat(CommonSharedConstants::CACHE_DIR, L"\\*").c_str(),
-			FindExInfoBasic, &findData, FindExSearchNameMatch, nullptr, FIND_FIRST_EX_LARGE_FETCH));
-		if (hFind) {
-			do {
-				std::wstring_view fileName(findData.cFileName);
+	// 清理缓存
+	WIN32_FIND_DATA findData{};
+	wil::unique_hfind hFind(FindFirstFileEx(
+		StrHelper::Concat(CommonSharedConstants::CACHE_DIR, L"\\*").c_str(),
+		FindExInfoBasic, &findData, FindExSearchNameMatch, nullptr, FIND_FIRST_EX_LARGE_FETCH));
+	if (hFind) {
+		do {
+			std::wstring_view fileName(findData.cFileName);
 
-				if (!fileName.starts_with(linearEffectName)) {
+			if (!fileName.starts_with(linearEffectName)) {
+				continue;
+			}
+
+			const size_t effectNameLen = linearEffectName.size();
+			if (fileName.size() == effectNameLen + 22) {
+				// 保留标志不同的缓存
+				if (!fileName.substr(effectNameLen).starts_with(fmt::format(L"_{:04x}_", flags))) {
 					continue;
 				}
 
-				const size_t effectNameLen = linearEffectName.size();
-				if (fileName.size() == effectNameLen + 22) {
-					// 保留标志不同的缓存
-					if (!fileName.substr(effectNameLen).starts_with(fmt::format(L"_{:04x}_", flags))) {
-						continue;
+				int i = 6;
+				for (; i < 22; ++i) {
+					const wchar_t c = fileName[effectNameLen + i];
+					if (!((c >= L'0' && c <= L'9') || (c >= L'a' && c <= L'f'))) {
+						break;
 					}
-
-					int i = 6;
-					for (; i < 22; ++i) {
-						const wchar_t c = fileName[effectNameLen + i];
-						if (!((c >= L'0' && c <= L'9') || (c >= L'a' && c <= L'f'))) {
-							break;
-						}
-					}
-					if (i != 22) {
-						continue;
-					}
-				} else if (fileName.size() == effectNameLen + 18) {
-					// 删除旧版缓存
-					if (fileName[effectNameLen] != L'_') {
-						continue;
-					}
-
-					int i = 1;
-					for (; i < 18; ++i) {
-						const wchar_t c = fileName[effectNameLen + i];
-						if (!((c >= L'0' && c <= L'9') || (c >= L'a' && c <= L'f'))) {
-							break;
-						}
-					}
-					if (i != 18) {
-						continue;
-					}
-				} else {
+				}
+				if (i != 22) {
+					continue;
+				}
+			} else if (fileName.size() == effectNameLen + 18) {
+				// 删除旧版缓存
+				if (fileName[effectNameLen] != L'_') {
 					continue;
 				}
 
-				if (!DeleteFile(StrHelper::Concat(
-					CommonSharedConstants::CACHE_DIR, L"\\", findData.cFileName).c_str()))
-				{
-					Logger::Get().Win32Error(StrHelper::Concat("删除缓存文件 ",
-						StrHelper::UTF16ToUTF8(findData.cFileName), " 失败"));
+				int i = 1;
+				for (; i < 18; ++i) {
+					const wchar_t c = fileName[effectNameLen + i];
+					if (!((c >= L'0' && c <= L'9') || (c >= L'a' && c <= L'f'))) {
+						break;
+					}
 				}
-			} while (FindNextFile(hFind.get(), &findData));
-		} else {
-			Logger::Get().Win32Error("查找缓存文件失败");
-		}
+				if (i != 18) {
+					continue;
+				}
+			} else {
+				continue;
+			}
+
+			if (!DeleteFile(StrHelper::Concat(
+				CommonSharedConstants::CACHE_DIR, L"\\", findData.cFileName).c_str())) {
+				Logger::Get().Win32Error(StrHelper::Concat("删除缓存文件 ",
+					StrHelper::UTF16ToUTF8(findData.cFileName), " 失败"));
+			}
+		} while (FindNextFile(hFind.get(), &findData));
+	} else {
+		Logger::Get().Win32Error("查找缓存文件失败");
 	}
 
 	std::wstring cacheFileName = GetCacheFileName(linearEffectName, flags, hash);
@@ -302,9 +251,8 @@ void EffectCacheManager::Save(
 		Logger::Get().Error("保存缓存失败");
 	}
 
-	_AddToMemCache(cacheFileName, key, desc);
-
-	Logger::Get().Info(StrHelper::Concat("已保存缓存 ", StrHelper::UTF16ToUTF8(cacheFileName)));
+	auto lk = _lock.lock_exclusive();
+	_memCache.Add(cacheFileName, desc);
 }
 
 uint64_t EffectCacheManager::GetHash(std::string_view key) {

@@ -191,6 +191,10 @@ void LoadOverlayOptions(ScalingOptions& options, const nlohmann::json& config) {
     }
     options.fullscreenInitialToolbarState = config["fullscreenInitialToolbarState"];
     options.windowedInitialToolbarState = config["windowedInitialToolbarState"];
+    // 与主程序默认快捷键一致
+    options.overlayOptions.scaleShortcut = config.value("scaleShortcut", "Alt+Shift+A");
+    options.overlayOptions.windowedModeScaleShortcut = config.value("windowedModeScaleShortcut", "Alt+Shift+Q");
+    options.overlayOptions.takeScreenshotShortcut = config.value("takeScreenshotShortcut", "Alt+Shift+S");
     for (auto&& [key, value] : config["windows"].items()) {
 
         options.overlayOptions.windows.emplace(
@@ -305,8 +309,13 @@ std::optional<ScalingOptions> LoadMagOptions(const nlohmann::json& config, int p
     options.IsDirectFlipDisabled(profile["disableDirectFlip"]);
 
     LoadOverlayOptions(options, config["overlay"]);
-    options.showToast = [](HWND hwndTarget, std::wstring_view msg) noexcept {
-        auto atom = GlobalAddAtom(std::wstring(msg).c_str());
+    options.showToast = [](HWND hwndTarget, std::wstring_view title, std::wstring_view msg) noexcept {
+        std::wstring text(title);
+        if (!text.empty()) {
+            text += L'\n';
+        }
+        text += msg;
+        auto atom = GlobalAddAtom(text.c_str());
         PostMessage(HWND_BROADCAST, Magpie_Core_CLI_ToastMessage, (WPARAM)atom, 0);
     };
 	options.showError = [](HWND hWnd, ScalingError error) noexcept {

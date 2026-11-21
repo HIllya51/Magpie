@@ -191,8 +191,8 @@ bool TouchHelper::Register() noexcept {
 
 	// 记录版本
 	targetPath += L".ver";
-	static const uint32_t version = TOUCH_HELPER_VERSION;
-	if (!Win32Helper::WriteFile(targetPath.c_str(), { (uint8_t*)&version, sizeof(version)})) {
+	const uint32_t version = TOUCH_HELPER_VERSION;
+	if (!Win32Helper::WriteFile(targetPath.c_str(), std::span((const uint8_t*)&version, sizeof(version)))) {
 		Logger::Get().Error("写入资源文件失败");
 		return false;
 	}
@@ -246,7 +246,7 @@ static void StopTouchHelper() noexcept {
 }
 
 static bool DeleteTouchHelperExe(const wchar_t* exePath) noexcept {
-	if (DeleteFile(exePath)) {
+	if (DeleteFile(exePath) || GetLastError() == ERROR_FILE_NOT_FOUND) {
 		return true;
 	}
 
@@ -257,7 +257,7 @@ static bool DeleteTouchHelperExe(const wchar_t* exePath) noexcept {
 
 	StopTouchHelper();
 
-	if (DeleteFile(exePath)) {
+	if (DeleteFile(exePath) || GetLastError() == ERROR_FILE_NOT_FOUND) {
 		return true;
 	} else {
 		Logger::Get().Win32Error("DeleteFile 失败");
@@ -294,7 +294,6 @@ bool TouchHelper::Unregister() noexcept {
 		StrHelper::Concat(system32Dir.get(), L"\\Magpie").c_str());
 	if (FAILED(hr)) {
 		Logger::Get().ComError("RemoveDirectoryRecursiveNoThrow 失败", hr);
-		return false;
 	}
 
 	// 删除证书
@@ -323,7 +322,7 @@ bool TouchHelper::Unregister() noexcept {
 	return true;
 }
 
-static std::wstring GetTouchHelperPath() noexcept {
+static std::filesystem::path GetTouchHelperPath() noexcept {
 	wil::unique_cotaskmem_string system32Dir;
 	HRESULT hr = SHGetKnownFolderPath(
 		FOLDERID_System, KF_FLAG_DEFAULT, NULL, system32Dir.put());
@@ -341,14 +340,13 @@ bool TouchHelper::IsTouchSupportEnabled() noexcept {
 }
 
 void TouchHelper::IsTouchSupportEnabled(bool value) noexcept {
-	SHELLEXECUTEINFO execInfo{
+	SHELLEXECUTEINFO execInfo = {
 		.cbSize = sizeof(execInfo),
 		.fMask = SEE_MASK_NOASYNC | SEE_MASK_NOCLOSEPROCESS,
 		.lpVerb = L"runas",
 		.lpFile = Win32Helper::GetExePath().c_str(),
 		.lpParameters = value ? L" -r" : L" -ur"
 	};
-
 	if (ShellExecuteEx(&execInfo)) {
 		wil::unique_process_handle hProcess(execInfo.hProcess);
 		if (hProcess) {
@@ -359,7 +357,7 @@ void TouchHelper::IsTouchSupportEnabled(bool value) noexcept {
 	}
 }
 
-static bool CheckAndFixTouchHelper(std::wstring& path) noexcept {
+static bool CheckAndFixTouchHelper(std::filesystem::path& path) noexcept {
 	// 检查版本号
 	path += L".ver";
 
@@ -384,12 +382,13 @@ static bool CheckAndFixTouchHelper(std::wstring& path) noexcept {
 		}
 	}
 
-	path.erase(path.size() - 4);
+	// 删除 .ver 后缀
+	path.replace_extension();
 	return true;
 }
 
 bool TouchHelper::TryLaunchTouchHelper(bool& isTouchSupportEnabled) noexcept {
-	std::wstring path = GetTouchHelperPath();
+	std::filesystem::path path = GetTouchHelperPath();
 	isTouchSupportEnabled = Win32Helper::FileExists(path.c_str());
 	if (!isTouchSupportEnabled) {
 		// 未启用触控支持
@@ -423,7 +422,7 @@ bool TouchHelper::TryLaunchTouchHelper(bool& isTouchSupportEnabled) noexcept {
 
 	// GH#992: 必须委托 explorer 启动 TouchHelper，否则如果启用了“以管理者身份运行该程序”
 	// 兼容性选项，TouchHelper 将无法获得 UIAccess 权限
-	if (!Win32Helper::ShellOpen(path.c_str(), nullptr, true)) {
+	if (!Win32Helper::LaunchExe(path)) {
 		Logger::Get().Error("启动 TouchHelper.exe 失败");
 		return false;
 	}

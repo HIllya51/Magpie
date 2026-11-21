@@ -1,4 +1,5 @@
 #pragma once
+#include "Singleton.h"
 #include <parallel_hashmap/phmap.h>
 
 namespace Magpie {
@@ -23,16 +24,10 @@ struct EffectInfo {
 	}
 };
 
-class EffectsService {
+class EffectsService : public Singleton<EffectsService> {
+	friend Singleton<EffectsService>;
+
 public:
-	static EffectsService& Get() noexcept {
-		static EffectsService instance;
-		return instance;
-	}
-
-	EffectsService(const EffectsService&) = delete;
-	EffectsService(EffectsService&&) = delete;
-
 	winrt::fire_and_forget Initialize();
 
 	void Uninitialize() noexcept;
@@ -48,7 +43,7 @@ private:
 
 	std::vector<EffectInfo> _effects;
 	phmap::flat_hash_map<std::wstring, uint32_t> _effectsMap;
-	std::atomic<bool> _initialized = false;
+	std::atomic<bool> _initialized;
 	bool _initializedCache = false;
 };
 

@@ -1,12 +1,13 @@
 #include "pch.h"
+#include "UpdateService.h"
 #include "App.h"
 #include "AppSettings.h"
+#include "ByteBuffer.h"
 #include "CommonSharedConstants.h"
 #include "JsonHelper.h"
 #include "Logger.h"
 #include "MainWindow.h"
 #include "StrHelper.h"
-#include "UpdateService.h"
 #include "Version.h"
 #include "Win32Helper.h"
 #include <bcrypt.h>
@@ -203,16 +204,15 @@ fire_and_forget UpdateService::DownloadAndInstall() {
 
 	// 清空 update 文件夹
 	if (Win32Helper::DirExists(CommonSharedConstants::UPDATE_DIR)) {
+		// 清空失败也继续
 		HRESULT hr = wil::RemoveDirectoryRecursiveNoThrow(
 			CommonSharedConstants::UPDATE_DIR, wil::RemoveDirectoryOptions::KeepRootDirectory);
 		if (FAILED(hr)) {
 			Logger::Get().ComError("RemoveDirectoryRecursiveNoThrow 失败", hr);
-			_Status(UpdateStatus::ErrorWhileDownloading);
-			co_return;
 		}
 	} else {
-		if (!CreateDirectory(CommonSharedConstants::UPDATE_DIR, nullptr)) {
-			Logger::Get().Win32Error("创建 update 文件夹失败");
+		if (!Win32Helper::CreateDir(CommonSharedConstants::UPDATE_DIR)) {
+			Logger::Get().Error("创建 update 文件夹失败");
 			_Status(UpdateStatus::ErrorWhileDownloading);
 			co_return;
 		}
@@ -257,10 +257,12 @@ fire_and_forget UpdateService::DownloadAndInstall() {
 		ULONG result;
 
 #ifdef _DEBUG
-		uint32_t hashLen = 0;
-		BCryptGetProperty(hAlg.get(), BCRYPT_HASH_LENGTH,
-			(PUCHAR)&hashLen, sizeof(hashLen), &result, 0);
-		assert(hashLen == MD5_HASH_LENGTH);
+		{
+			uint32_t hashLen = 0;
+			std::ignore = BCryptGetProperty(hAlg.get(), BCRYPT_HASH_LENGTH,
+				(PUCHAR)&hashLen, sizeof(hashLen), &result, 0);
+			assert(hashLen == MD5_HASH_LENGTH);
+		}
 #endif
 
 		uint32_t hashObjSize = 0;
@@ -272,11 +274,11 @@ fire_and_forget UpdateService::DownloadAndInstall() {
 			co_return;
 		}
 
-		std::unique_ptr<uint8_t[]> hashObj = std::make_unique<uint8_t[]>(hashObjSize);
+		ByteBuffer hashObj(hashObjSize);
 
 		wil::unique_bcrypt_hash hHash;
 		status = BCryptCreateHash(
-			hAlg.get(), hHash.put(), hashObj.get(), hashObjSize, NULL, 0, 0);
+			hAlg.get(), hHash.put(), hashObj.Data(), hashObjSize, NULL, 0, 0);
 		if (status != STATUS_SUCCESS) {
 			Logger::Get().NTError("BCryptCreateHash 失败", status);
 			_Status(UpdateStatus::ErrorWhileDownloading);
@@ -314,8 +316,8 @@ fire_and_forget UpdateService::DownloadAndInstall() {
 				co_return;
 			}
 			
-			if (!WriteFile(updatePkg.get(), bufferData, bufferSize, nullptr, nullptr)) {
-				Logger::Get().Win32Error("WriteFile 失败");
+			if (!Win32Helper::WriteFile(updatePkg.get(), std::span(bufferData, bufferSize))) {
+				Logger::Get().Error("Win32Helper::WriteFile 失败");
 				_Status(UpdateStatus::ErrorWhileDownloading);
 				co_return;
 			}
@@ -374,6 +376,7 @@ fire_and_forget UpdateService::DownloadAndInstall() {
 	co_await App::Get().Dispatcher();
 
 	if (_downloadCancelled) {
+		Logger::Get().Info("下载已取消");
 		_Status(UpdateStatus::Available);
 		co_return;
 	}
@@ -394,17 +397,22 @@ fire_and_forget UpdateService::DownloadAndInstall() {
 
 	MoveFileEx(updaterExePath.c_str(), L"Updater.exe", MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
 
-	std::wstring curVersion = MAGPIE_VERSION.ToString<wchar_t>();
-	// 调用 ShellExecuteEx 后立即退出，因此应该指定 SEE_MASK_NOASYNC
-	SHELLEXECUTEINFO execInfo{
-		.cbSize = sizeof(execInfo),
-		.fMask = SEE_MASK_NOASYNC,
-		.lpVerb = L"open",
-		.lpFile = L"Updater.exe",
-		.lpParameters = curVersion.c_str()
-	};
-	if (!ShellExecuteEx(&execInfo)) {
-		Logger::Get().Win32Error("ShellExecuteEx 失败");
+	std::wstring workingDir;
+	HRESULT hr = wil::GetCurrentDirectoryW(workingDir);
+	if (FAILED(hr)) {
+		Logger::Get().ComError("wil::GetCurrentDirectoryW 失败", hr);
+		_Status(UpdateStatus::ErrorWhileDownloading);
+		co_return;
+	}
+
+	if (!Win32Helper::LaunchExe(
+		workingDir + L"\\Updater.exe",
+		MAGPIE_VERSION.ToString<wchar_t>(),
+		true, true
+	)) {
+		Logger::Get().Error("启动 Updater.exe 失败");
+		_Status(UpdateStatus::ErrorWhileDownloading);
+		co_return;
 	}
 
 	App::Get().Quit();

@@ -45,7 +45,9 @@ void ScalingOptions::Prepare() noexcept {
 	assert(cursorScaleFactor >= 0);
 	assert(!autoHideCursorDelay.has_value() || *autoHideCursorDelay > 0);
 	assert(initialWindowedScaleFactor >= 0);
-	assert(!screenshotsDir.empty());
+	assert(!overlayOptions.scaleShortcut.empty());
+	assert(!overlayOptions.windowedModeScaleShortcut.empty());
+	assert(!overlayOptions.takeScreenshotShortcut.empty());
 	assert(showToast && showError && save);
 
 	// GDI 和 DwmSharedSurface 不支持捕获标题栏
@@ -61,7 +63,14 @@ void ScalingOptions::Prepare() noexcept {
 		duplicateFrameDetectionMode = DuplicateFrameDetectionMode::Never;
 	}
 
+	// 为 screenshotFilenameTemplate 设置默认值。screenshotsDir 可以为空，
+	// 将显示错误消息。
+	if (screenshotFilenameTemplate.empty()) {
+		screenshotFilenameTemplate = "%PN:20%";
+	}
+
 	Logger::Get().Info(fmt::format(R"(缩放选项
+	effects: {}
 	IsWindowedMode: {}
 	IsDebugMode: {}
 	IsBenchmarkMode: {}
@@ -91,12 +100,14 @@ void ScalingOptions::Prepare() noexcept {
 	captureMethod: {}
 	multiMonitorUsage: {}
 	cursorInterpolationMode: {}
+	autoHideCursorDelay: {}
 	duplicateFrameDetectionMode: {}
 	fullscreenInitialToolbarState: {}
 	windowedInitialToolbarState: {}
-	initialWindowedScaleFactor: {},
+	initialWindowedScaleFactor: {}
 	screenshotsDir: {}
-	effects: {})",
+	screenshotFilenameTemplate: {})",
+		LogEffects(effects),
 		IsWindowedMode(),
 		IsDebugMode(),
 		IsBenchmarkMode(),
@@ -120,17 +131,18 @@ void ScalingOptions::Prepare() noexcept {
 		graphicsCardId.vendorId,
 		graphicsCardId.deviceId,
 		minFrameRate,
-		maxFrameRate.has_value() ? *maxFrameRate : 0.0f,
+		maxFrameRate.value_or(0.0f),
 		cursorScaleFactor,
 		(int)captureMethod,
 		(int)multiMonitorUsage,
 		(int)cursorInterpolationMode,
+		autoHideCursorDelay.value_or(0.0f),
 		(int)duplicateFrameDetectionMode,
 		(int)fullscreenInitialToolbarState,
 		(int)windowedInitialToolbarState,
 		initialWindowedScaleFactor,
 		StrHelper::UTF16ToUTF8(screenshotsDir.native()),
-		LogEffects(effects)
+		screenshotFilenameTemplate
 	));
 }
 

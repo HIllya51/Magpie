@@ -92,15 +92,13 @@ private:
 
 	bool _UpdateDynamicConstants() const noexcept;
 
-	winrt::IAsyncAction _UpdateNextScreenshotNum(const wchar_t* imgFormat) noexcept;
-
-	winrt::IAsyncOperation<bool> _TakeScreenshotImpl(
+	// 返回 TakeScreenshotResult，但 IAsyncOperation 只支持 WinRT 类型
+	winrt::IAsyncOperation<int> _TakeScreenshotImpl(
 		uint32_t effectIdx,
 		uint32_t passIdx,
-		uint32_t outputIdx
+		uint32_t outputIdx,
+		std::wstring& screenshotFileName
 	) noexcept;
-
-	static LRESULT CALLBACK _LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam);
 
 	// 只能由前台线程访问
 	DeviceResources _frontendResources;
@@ -115,8 +113,6 @@ private:
 	RECT _destRect{};
 	
 	std::thread _backendThread;
-
-	wil::unique_hhook _hKeyboardHook;
 	
 	// 只能由后台线程访问
 	DeviceResources _backendResources;
@@ -136,13 +132,14 @@ private:
 
 	winrt::com_ptr<ID3D11Buffer> _dynamicCB;
 
-	uint32_t _screenshotNum = 0;
+	// 用于防止截图时退出
+	uint32_t _pendingScreenshotCount = 0;
 
 	// 可由所有线程访问
-	std::atomic<uint64_t> _sharedTextureMutexKey = 0;
+	std::atomic<uint64_t> _sharedTextureMutexKey;
 
 	// INVALID_HANDLE_VALUE 表示后端初始化失败
-	std::atomic<HANDLE> _sharedTextureHandle{ NULL };
+	std::atomic<HANDLE> _sharedTextureHandle;
 	// 下面四个成员由 _sharedTextureHandle 同步
 	winrt::Windows::System::DispatcherQueue _backendThreadDispatcher{ nullptr };
 	ScalingError _backendInitError = ScalingError::NoError;

@@ -145,7 +145,7 @@
   <data name="ScalingModes_NewScalingModeFlyout_Name.Text" xml:space="preserve">
     <value>Nazwa</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Fit_Description" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Fit.Desc" xml:space="preserve">
     <value>Ustawia współczynnik po wypełnieniu ekranu skalowaniem proporcjonalnym</value>
   </data>
   <data name="Profile_General.Header" xml:space="preserve">
@@ -371,7 +371,7 @@
   <data name="Home_Activation_Timer_Delay.Header" xml:space="preserve">
     <value>Opóźnienie w sekundach</value>
   </data>
-  <data name="ShortcutDialog_Description.Text" xml:space="preserve">
+  <data name="ShortcutDialogContent_Description.Text" xml:space="preserve">
     <value>Naciśnij kombinację klawiszy, aby zmienić ten skrót</value>
   </data>
   <data name="ShortcutDialog_InUse" xml:space="preserve">
@@ -380,7 +380,7 @@
   <data name="ShortcutDialog_Save" xml:space="preserve">
     <value>Zapisz</value>
   </data>
-  <data name="ShortcutDialog_Tip.Text" xml:space="preserve">
+  <data name="ShortcutDialogContent_Tip.Text" xml:space="preserve">
     <value>Ważne są tylko skróty, które rozpoczynają się od klawisza Windows, Ctrl, Alt lub Shift.</value>
   </data>
   <data name="Root_About.Content" xml:space="preserve">
@@ -446,7 +446,7 @@
   <data name="Settings_General_Theme_Dark.Content" xml:space="preserve">
     <value>Ciemny</value>
   </data>
-  <data name="ScalingModes_General_Export.Text" xml:space="preserve">
+  <data name="ScalingModes_Export.Text" xml:space="preserve">
     <value>Eksportuj</value>
   </data>
   <data name="Settings_General_Theme_Light.Content" xml:space="preserve">
@@ -467,7 +467,7 @@
   <data name="Settings_Launch.Header" xml:space="preserve">
     <value>Uruchom</value>
   </data>
-  <data name="ScalingModes_General_Import.Text" xml:space="preserve">
+  <data name="ScalingModes_Import.Text" xml:space="preserve">
     <value>Importuj</value>
   </data>
   <data name="ScalingModes_DragNotSupported.Text" xml:space="preserve">
@@ -475,9 +475,6 @@
   </data>
   <data name="ScalingModes_MoveUp.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Przesuń w górę</value>
-  </data>
-  <data name="ScalingModes_General_MoreOptions.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
-    <value>Więcej opcji</value>
   </data>
   <data name="About_OtherLinks_License.Text" xml:space="preserve">
     <value>Licencja</value>
@@ -503,7 +500,7 @@
   <data name="ScalingModes_NewScalingModeFlyout_Title.Text" xml:space="preserve">
     <value>Nowy tryb skalowania</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Fill" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Fill.Name" xml:space="preserve">
     <value>Wypełnij</value>
   </data>
   <data name="ScalingModes_MoveDown.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
@@ -536,22 +533,22 @@
   <data name="ScalingModes_ScaleFlyout_Type.Text" xml:space="preserve">
     <value>Typ</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Absolute" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Absolute.Name" xml:space="preserve">
     <value>Absolutny</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Factor_Description" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Factor.Desc" xml:space="preserve">
     <value>Ustawia współczynnik skalowania względem obrazu wejściowego</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Absolute_Description" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Absolute.Desc" xml:space="preserve">
     <value>Ustawia rozmiar po skalowaniu</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Fill_Description" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Fill.Desc" xml:space="preserve">
     <value>Wypełnia ekran; obraz może być rozciągnięty</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Factor" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Factor.Name" xml:space="preserve">
     <value>Współczynnik</value>
   </data>
-  <data name="ScalingModes_ScaleFlyout_Type_Fit" xml:space="preserve">
+  <data name="ScalingModes_ScaleFlyout_Type_Fit.Name" xml:space="preserve">
     <value>Dopasuj</value>
   </data>
   <data name="Profile_Performance_GraphicsCard.Header" xml:space="preserve">
@@ -560,13 +557,13 @@
   <data name="Profile_MoreOptions.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Więcej opcji</value>
   </data>
-  <data name="Profile_Launch.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+  <data name="Profile_Launch.Text" xml:space="preserve">
     <value>Uruchom</value>
   </data>
-  <data name="Profile_MoreOptions_DeleteFlyout_Delete.Text" xml:space="preserve">
+  <data name="DeleteConfirmationFlyoutContent_Delete.Text" xml:space="preserve">
     <value>Usuń</value>
   </data>
-  <data name="Profile_MoreOptions_DeleteFlyout_Title.Text" xml:space="preserve">
+  <data name="Profile_MoreOptions_DeleteFlyout.Text" xml:space="preserve">
     <value>Czy na pewno chcesz usunąć ten profil?</value>
   </data>
   <data name="Profile_MoreOptions_OpenProgramLocation.Text" xml:space="preserve">
@@ -809,16 +806,16 @@
   <data name="Home_Toolbar.Header" xml:space="preserve">
     <value>Pasek narzędzi</value>
   </data>
-  <data name="Home_Toolbar_InitialState.Header" xml:space="preserve">
+  <data name="Profile_Toolbar_InitialState.Header" xml:space="preserve">
     <value>Wstępny stan paska narzędzi</value>
   </data>
-  <data name="Home_Toolbar_InitialState_AlwaysShow.Content" xml:space="preserve">
+  <data name="Profile_Toolbar_InitialState_AlwaysShow.Content" xml:space="preserve">
     <value>Zawsze pokazuj</value>
   </data>
-  <data name="Home_Toolbar_InitialState_AutoHide.Content" xml:space="preserve">
+  <data name="Profile_Toolbar_InitialState_AutoHide.Content" xml:space="preserve">
     <value>Ukrywaj autom.</value>
   </data>
-  <data name="Home_Toolbar_InitialState_Off.Content" xml:space="preserve">
+  <data name="Profile_Toolbar_InitialState_Off.Content" xml:space="preserve">
     <value>Wył.</value>
   </data>
   <data name="Home_Toolbar_StateToggle.Header" xml:space="preserve">
@@ -854,10 +851,10 @@
   <data name="Profile_General_3DGameMode.Description" xml:space="preserve">
     <value>Włącza optymalizacje dla gier 3D, ale nie zadziała z paskiem narzędzi i skalowaniem okien</value>
   </data>
-  <data name="Home_Toolbar_ScreenshotSaveDirectory.Header" xml:space="preserve">
+  <data name="Profile_Toolbar_ScreenshotSaveDirectory.Header" xml:space="preserve">
     <value>Katalog zapisu zrzutów ekranu</value>
   </data>
-  <data name="Home_Toolbar_ScreenshotSaveDirectory_Change.Content" xml:space="preserve">
+  <data name="Profile_Toolbar_ScreenshotSaveDirectory_Change.Content" xml:space="preserve">
     <value>Zmień</value>
   </data>
   <data name="Dialog_SelectScreenshotSaveDirectory_Title" xml:space="preserve">
@@ -865,9 +862,6 @@
   </data>
   <data name="Message_ScreenshotSaved" xml:space="preserve">
     <value>Zrzut ekranu zapisany jako {}</value>
-  </data>
-  <data name="Message_ScreenshotFailed" xml:space="preserve">
-    <value>Zrzut ekranu nie powiódł się.</value>
   </data>
   <data name="Overlay_Toolbar_TakeScreenshot_Description" xml:space="preserve">
     <value>Kliknij PPM, aby wyeksportować wynik pośredni</value>
@@ -914,10 +908,10 @@
   <data name="Overlay_Toolbar_SwitchToWindowed" xml:space="preserve">
     <value>Przełącz na skalowanie okienkowe</value>
   </data>
-  <data name="Home_Toolbar_InitialState_Fullscreen.Header" xml:space="preserve">
+  <data name="Profile_Toolbar_InitialState_Fullscreen.Header" xml:space="preserve">
     <value>Skalowanie pełnoekranowe</value>
   </data>
-  <data name="Home_Toolbar_InitialState_Windowed.Header" xml:space="preserve">
+  <data name="Profile_Toolbar_InitialState_Windowed.Header" xml:space="preserve">
     <value>Skalowanie okienkowe</value>
   </data>
   <data name="Message_ExportScalingModesFailed" xml:space="preserve">

@@ -6,9 +6,7 @@
 #include "App.h"
 #include "AppSettings.h"
 #include "CommonSharedConstants.h"
-#include "FileDialogHelper.h"
 #include "LocalizationService.h"
-#include "Logger.h"
 #include "RootPage.h"
 #include "ScalingService.h"
 #include "StrHelper.h"
@@ -45,6 +43,7 @@ HomeViewModel::HomeViewModel() {
 hstring HomeViewModel::TimerDescription() const noexcept {
 	hstring fmtStr = LocalizationService::Get()
 		.GetLocalizedString(L"Home_Activation_Timer_Description");
+	// NOLINTNEXTLINE(clang-analyzer-security.ArrayBound)
 	return hstring(fmt::format(
 		fmt::runtime(std::wstring_view(fmtStr)),
 		AppSettings::Get().CountdownSeconds()
@@ -132,7 +131,7 @@ void HomeViewModel::IsAutoCheckForUpdates(bool value) noexcept {
 
 void HomeViewModel::DownloadAndInstall() {
 	UpdateService::Get().DownloadAndInstall();
-	App::Get().RootPage()->NavigateToAboutPage();
+	App::Get().RootPage().NavigateToAboutPage();
 }
 
 void HomeViewModel::ReleaseNotes() {
@@ -140,139 +139,11 @@ void HomeViewModel::ReleaseNotes() {
 		L"https://github.com/Blinue/Magpie/releases/tag/",
 		UpdateService::Get().Tag()
 	);
-	Win32Helper::ShellOpen(url.c_str());
+	Win32Helper::OpenUrl(url.c_str());
 }
 
 void HomeViewModel::RemindMeLater() {
 	ShowUpdateCard(false);
-}
-
-hstring HomeViewModel::InitialToolbarStateDescription() const noexcept {
-	static constexpr std::array STATE_STRING_IDS = {
-		L"Home_Toolbar_InitialState_Off/Content",
-		L"Home_Toolbar_InitialState_AlwaysShow/Content",
-		L"Home_Toolbar_InitialState_AutoHide/Content"
-	};
-
-	const ToolbarState fullscreenInitialState =
-		AppSettings::Get().FullscreenInitialToolbarState();
-	const ToolbarState windowedInitialState =
-		AppSettings::Get().WindowedInitialToolbarState();
-
-	LocalizationService& ls = LocalizationService::Get();
-	if (fullscreenInitialState == windowedInitialState) {
-		return ls.GetLocalizedString(STATE_STRING_IDS[(uint32_t)fullscreenInitialState]);
-	} else {
-		return hstring(StrHelper::Concat(
-			ls.GetLocalizedString(STATE_STRING_IDS[(uint32_t)fullscreenInitialState]),
-			L" | ",
-			ls.GetLocalizedString(STATE_STRING_IDS[(uint32_t)windowedInitialState]))
-		);
-	}
-}
-
-int HomeViewModel::FullscreenInitialToolbarState() const noexcept {
-	return (int)AppSettings::Get().FullscreenInitialToolbarState();
-}
-
-void HomeViewModel::FullscreenInitialToolbarState(int value) {
-	if (value < 0) {
-		return;
-	}
-
-	const ToolbarState state = (ToolbarState)value;
-
-	AppSettings& settings = AppSettings::Get();
-	if (settings.FullscreenInitialToolbarState() == state) {
-		return;
-	}
-
-	settings.FullscreenInitialToolbarState(state);
-	RaisePropertyChanged(L"FullscreenInitialToolbarState");
-	RaisePropertyChanged(L"InitialToolbarStateDescription");
-}
-
-int HomeViewModel::WindowedInitialToolbarState() const noexcept {
-	return (int)AppSettings::Get().WindowedInitialToolbarState();
-}
-
-void HomeViewModel::WindowedInitialToolbarState(int value) {
-	if (value < 0) {
-		return;
-	}
-
-	const ToolbarState state = (ToolbarState)value;
-
-	AppSettings& settings = AppSettings::Get();
-	if (settings.WindowedInitialToolbarState() == state) {
-		return;
-	}
-
-	settings.WindowedInitialToolbarState(state);
-	RaisePropertyChanged(L"WindowedInitialToolbarState");
-	RaisePropertyChanged(L"InitialToolbarStateDescription");
-}
-
-hstring HomeViewModel::ScreenshotSaveDirectory() const noexcept {
-	return hstring(AppSettings::Get().ScreenshotsDir().native());
-}
-
-void HomeViewModel::OpenScreenshotSaveDirectory() const noexcept {
-	const std::filesystem::path saveDir = AppSettings::Get().ScreenshotsDir();
-	if (Win32Helper::CreateDir(saveDir.native(), true)) {
-		Win32Helper::ShellOpen(saveDir.c_str());
-	}
-}
-
-fire_and_forget HomeViewModel::ChangeScreenshotSaveDirectory() noexcept {
-	const hstring titleStr = LocalizationService::Get()
-		.GetLocalizedString(L"Dialog_SelectScreenshotSaveDirectory_Title");
-
-	const std::filesystem::path oldValue = AppSettings::Get().ScreenshotsDir();
-
-	auto weakThis = get_weak();
-
-	// 在主线程使用 IFileOpenDialog 有些问题，尤其在 Win10 中
-	co_await resume_background();
-
-	com_ptr<IFileOpenDialog> pickFolderDialog =
-		try_create_instance<IFileOpenDialog>(CLSID_FileOpenDialog);
-	if (!pickFolderDialog) {
-		Logger::Get().Error("创建 FileSaveDialog 失败");
-		co_return;
-	}
-	
-	pickFolderDialog->SetTitle(titleStr.c_str());
-
-	if (!oldValue.empty()) {
-		// 选择父目录作为初始目录
-		const std::filesystem::path parentDir = oldValue.parent_path();
-
-		com_ptr<IShellItem> shellItem;
-		HRESULT hr = SHCreateItemFromParsingName(
-			parentDir.empty() ? oldValue.c_str() : parentDir.c_str(),
-			nullptr,
-			IID_PPV_ARGS(&shellItem)
-		);
-		if (SUCCEEDED(hr)) {
-			pickFolderDialog->SetFolder(shellItem.get());
-		} else {
-			Logger::Get().ComError("SHCreateItemFromParsingName 失败", hr);
-		}
-	}
-
-	std::optional<std::filesystem::path> screenshotDir =
-		FileDialogHelper::OpenFileDialog(pickFolderDialog.get(), FOS_PICKFOLDERS);
-	if (!screenshotDir || screenshotDir->empty() || *screenshotDir == oldValue) {
-		co_return;
-	}
-
-	co_await App::Get().Dispatcher();
-
-	if (weakThis.get()) {
-		AppSettings::Get().ScreenshotsDir(*screenshotDir);
-		RaisePropertyChanged(L"ScreenshotSaveDirectory");
-	}
 }
 
 bool HomeViewModel::IsTouchSupportEnabled() const noexcept {
@@ -431,7 +302,15 @@ void HomeViewModel::IsDeveloperMode(bool value) {
 }
 
 void HomeViewModel::LocateMagpieLogs() noexcept {
-	Win32Helper::ShellOpen(StrHelper::Concat(L".\\", CommonSharedConstants::LOGS_DIR).c_str());
+	std::wstring workingDir;
+	HRESULT hr = wil::GetCurrentDirectoryW(workingDir);
+	if (FAILED(hr)) {
+		Logger::Get().ComError("wil::GetCurrentDirectoryW 失败", hr);
+		return;
+	}
+
+	Win32Helper::OpenFolder(
+		StrHelper::Concat(workingDir, L"\\", CommonSharedConstants::LOGS_DIR));
 }
 
 static fire_and_forget LocateTempLogs(const wchar_t* logName) noexcept {
@@ -453,7 +332,7 @@ static fire_and_forget LocateTempLogs(const wchar_t* logName) noexcept {
 	}
 
 	co_await resume_background();
-	Win32Helper::OpenFolderAndSelectFile(path.c_str());
+	Win32Helper::OpenFolderAndSelectFile(std::move(path));
 }
 
 void HomeViewModel::LocateTouchHelperLogs() noexcept {

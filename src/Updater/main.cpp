@@ -47,7 +47,7 @@ static void InitializeLogger() noexcept {
 }
 
 // 将当前目录设为程序所在目录
-static bool SetWorkingDir() noexcept {
+static bool SetWorkingDir(std::filesystem::path& workingDir) noexcept {
 	std::wstring exePath;
 	HRESULT hr = wil::GetModuleFileNameW(NULL, exePath);
 	if (FAILED(hr)) {
@@ -55,10 +55,8 @@ static bool SetWorkingDir() noexcept {
 		return false;
 	}
 
-	std::filesystem::path parentPath =
-		std::filesystem::path(std::move(exePath)).parent_path();
-
-	if (!SetCurrentDirectory(parentPath.c_str())) {
+	workingDir = std::filesystem::path(std::move(exePath)).parent_path();
+	if (!SetCurrentDirectory(workingDir.c_str())) {
 		Logger::Get().Win32Error("SetCurrentDirectory 失败");
 		return false;
 	}
@@ -85,7 +83,7 @@ static bool WaitForMagpieToExit() noexcept {
 	// 即使 mutex 已被释放，Magpie.exe 仍有可能正在后台执行清理工作
 	// 尝试删除 Magpie.exe，直到成功为止
 	for (int i = 0; i < 1000; ++i) {
-		if (DeleteFile(L"Magpie.exe")) {
+		if (DeleteFile(L"Magpie.exe") || GetLastError() == ERROR_FILE_NOT_FOUND) {
 			return true;
 		}
 
@@ -148,7 +146,8 @@ int APIENTRY wWinMain(
 
 	Logger::Get().Info("程序启动");
 
-	if (!SetWorkingDir()) {
+	std::filesystem::path workingDir;
+	if (!SetWorkingDir(workingDir)) {
 		Logger::Get().Critical("SetWorkingDir 失败");
 		return 1;
 	}
@@ -182,7 +181,7 @@ int APIENTRY wWinMain(
 
 	// 删除旧版本文件
 	for (const wchar_t* fileName : oldFiles->files) {
-		if (DeleteFile(fileName)) {
+		if (DeleteFile(fileName) || GetLastError() == ERROR_FILE_NOT_FOUND) {
 			Logger::Get().Info(StrHelper::Concat(
 				"已删除文件 ", StrHelper::UTF16ToUTF8(fileName)));
 		} else {
@@ -191,7 +190,7 @@ int APIENTRY wWinMain(
 		}
 	}
 	for (const wchar_t* folder : oldFiles->folders) {
-		if (RemoveDirectory(folder)) {
+		if (RemoveDirectory(folder) || GetLastError() == ERROR_FILE_NOT_FOUND) {
 			Logger::Get().Info(StrHelper::Concat(
 				"已删除文件夹 ", StrHelper::UTF16ToUTF8(folder)));
 		} else {
@@ -211,12 +210,13 @@ int APIENTRY wWinMain(
 		Logger::Get().ComError("RemoveDirectoryRecursiveNoThrow 失败", hr);
 	}
 
-	// 启动 Magpie
-	SHELLEXECUTEINFO execInfo{
+	// 启动 Magpie。使用绝对路径以避免歧义
+	std::filesystem::path magpieExePath = workingDir / "Magpie.exe";
+	SHELLEXECUTEINFO execInfo = {
 		.cbSize = sizeof(execInfo),
 		.fMask = SEE_MASK_NOASYNC,
 		.lpVerb = L"open",
-		.lpFile = L"Magpie.exe",
+		.lpFile = magpieExePath.c_str(),
 		.nShow = SW_SHOWNORMAL
 	};
 	if (ShellExecuteEx(&execInfo)) {

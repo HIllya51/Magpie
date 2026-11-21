@@ -29,7 +29,9 @@ ScalingWindow::ScalingWindow() noexcept
 	{}
 #endif
 
-ScalingWindow::~ScalingWindow() noexcept {}
+ScalingWindow::~ScalingWindow() noexcept {
+	Destroy();
+}
 
 static void LogRects(const RECT& srcRect, const RECT& rendererRect, const RECT& windowRect) noexcept {
 	Logger::Get().Info(fmt::format("源矩形: {},{},{},{} ({}x{})",
@@ -60,7 +62,7 @@ ScalingError ScalingWindow::_StartImpl(HWND hwndSrc) noexcept {
 
 #if _DEBUG
 	OutputDebugString(fmt::format(L"可执行文件路径: {}\n窗口类: {}\n",
-		Win32Helper::GetWindowPath(hwndSrc), Win32Helper::GetWindowClassName(hwndSrc)).c_str());
+		Win32Helper::GetWindowExePath(hwndSrc), Win32Helper::GetWindowClassName(hwndSrc)).c_str());
 #endif
 
 	_runtimeError = ScalingError::NoError;
@@ -861,7 +863,7 @@ LRESULT ScalingWindow::_MessageHandler(UINT msg, WPARAM wParam, LPARAM lParam) n
 		// 更新 _runId 表明当前缩放结束
 		++_runId;
 
-		_keepScreenOn.reset();
+		_keepScreenOnGuard.reset();
 
 		if (_exclModeMutex) {
 			_exclModeMutex.ReleaseMutex();
@@ -1236,7 +1238,7 @@ void ScalingWindow::_Show() noexcept {
 
 	// 保持屏幕常亮
 	if (_options.IsKeepScreenOn()) {
-		_keepScreenOn = KeepScreenOnHelper::EnableKeepScreenOn();
+		_keepScreenOnGuard = KeepScreenOnHelper::EnableKeepScreenOn();
 	}
 	
 	// 模拟独占全屏
@@ -1901,7 +1903,7 @@ winrt::fire_and_forget ScalingWindow::_UpdateFocusStateAsync() const noexcept {
 				// 全屏模式缩放时确保缩放窗口在所有置顶窗口之上，这使不支持 MPO 的显卡更容易激
 				// 活 DirectFlip。
 				if (!_options.IsWindowedMode()) {
-					SetWindowPos(Handle(), HWND_TOP, 0, 0, 0, 0, SWP_NO_ACTIVATE_MOVE_SIZE);
+					SetWindowPos(Handle(), HWND_TOP, 0, 0, 0, 0, SWP_NO_ACTIVATE_MOVE_SIZE | SWP_NOOWNERZORDER);
 				}
 			} else {
 				const uint32_t runId = ScalingWindow::RunId();
@@ -1933,7 +1935,7 @@ winrt::fire_and_forget ScalingWindow::_UpdateFocusStateAsync() const noexcept {
 				}
 
 				if (isInBackground) {
-					co_await ScalingWindow::Get().Dispatcher();
+					co_await _dispatcher;
 
 					// 等待时源窗口重新回到前台了应放弃后续操作
 					if (runId != ScalingWindow::RunId() || _srcTracker.IsFocused()) {

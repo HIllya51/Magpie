@@ -98,6 +98,13 @@ static void UpdateToastPosition(HWND hwndToast, const RECT& frameRect, bool upda
 }
 
 fire_and_forget ToastPage::ShowMessageOnWindow(std::wstring title, std::wstring message, HWND hwndTarget, bool showLogo) {
+	// 先检查目标窗口状态
+	RECT frameRect;
+	if (!Win32Helper::GetWindowFrameRect(hwndTarget, frameRect)) {
+		Logger::Get().Error("Win32Helper::GetWindowFrameRect 失败");
+		co_return;
+	}
+
 	DispatcherQueue dispatcher = DispatcherQueue::GetForCurrentThread();
 
 	// !!! HACK !!!
@@ -111,11 +118,6 @@ fire_and_forget ToastPage::ShowMessageOnWindow(std::wstring title, std::wstring 
 		co_await resume_foreground(dispatcher, DispatcherQueuePriority::Low);
 	} else {
 		oldTeachingTip = std::move(_oldTeachingTip);
-	}
-
-	RECT frameRect;
-	if (!Win32Helper::GetWindowFrameRect(hwndTarget, frameRect)) {
-		co_return;
 	}
 
 	// 更改所有者关系使弹窗始终在 hwndTarget 上方。如果失败，改为定期将弹窗置顶，如果 hwndTarget
@@ -283,14 +285,14 @@ fire_and_forget ToastPage::ShowMessageOnWindow(std::wstring title, std::wstring 
 }
 
 void ToastPage::_UpdateTheme() {
-	const bool isLightTheme = App::Get().IsLightTheme();
+	const bool isDarkTheme = App::Get().IsDarkTheme();
 
-	if (IsLoaded() && (ActualTheme() == ElementTheme::Light) == isLightTheme) {
+	if (IsLoaded() && (ActualTheme() == ElementTheme::Dark) == isDarkTheme) {
 		// 无需切换
 		return;
 	}
 
-	ElementTheme newTheme = isLightTheme ? ElementTheme::Light : ElementTheme::Dark;
+	ElementTheme newTheme = isDarkTheme ? ElementTheme::Dark : ElementTheme::Light;
 	RequestedTheme(newTheme);
 
 	XamlHelper::UpdateThemeOfXamlPopups(XamlRoot(), newTheme);

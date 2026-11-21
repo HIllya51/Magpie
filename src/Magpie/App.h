@@ -2,6 +2,7 @@
 #include "App.g.h"
 #include "AppSettings.h"
 #include "Event.h"
+#include "Singleton.h"
 #include <winrt/Windows.Globalization.NumberFormatting.h>
 #include <winrt/Windows.UI.Xaml.Hosting.h>
 
@@ -13,13 +14,14 @@ namespace winrt::Magpie::implementation {
 
 struct RootPage;
 
-class App : public App_base<App, Markup::IXamlMetadataProvider> {
+class App : public App_base<App, Markup::IXamlMetadataProvider>, public ::Magpie::Singleton<App>{
+	friend Singleton<App>;
+
 public:
+	// 不能直接构造，所以需自己定义 Get
 	static App& Get();
 
 	App();
-	App(const App&) = delete;
-	App(App&&) = delete;
 
 	bool Initialize(const wchar_t* arguments);
 
@@ -35,7 +37,7 @@ public:
 
 	void Restart(bool asElevated = false, const wchar_t* arguments = nullptr) noexcept;
 
-	const com_ptr<RootPage>& RootPage() const noexcept;
+	RootPage& RootPage() const noexcept;
 
 	const ::Magpie::MainWindow& MainWindow() const noexcept {
 		return *_mainWindow;
@@ -45,8 +47,8 @@ public:
 		return *_mainWindow;
 	}
 
-	bool IsLightTheme() const noexcept {
-		return _isLightTheme.load(std::memory_order_relaxed);
+	bool IsDarkTheme() const noexcept {
+		return _isDarkTheme;
 	}
 
 	static Windows::Globalization::NumberFormatting::INumberFormatter2 DoubleFormatter();
@@ -79,9 +81,10 @@ private:
 	::Magpie::Event<::Magpie::AppTheme>::EventRevoker _themeChangedRevoker;
 	Windows::UI::ViewManagement::UISettings _uiSettings;
 	Windows::UI::ViewManagement::UISettings::ColorValuesChanged_revoker _colorValuesChangedRevoker;
-	std::atomic<bool> _isLightTheme = true;
 
 	::Magpie::Event<bool>::EventRevoker _isShowNotifyIconChangedRevoker;
+
+	bool _isDarkTheme = false;
 
 	////////////////////////////////////////////////////
 	// 

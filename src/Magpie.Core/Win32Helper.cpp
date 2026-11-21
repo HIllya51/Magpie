@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Win32Helper.h"
+#include "ByteBuffer.h"
 #include "StrHelper.h"
 #include <dcomp.h>
 #include <dwmapi.h>
@@ -68,7 +69,7 @@ wil::unique_process_handle Win32Helper::GetWindowProcessHandle(HWND hWnd) noexce
 	return result;
 }
 
-std::wstring Win32Helper::GetWindowPath(HWND hWnd) noexcept {
+std::wstring Win32Helper::GetWindowExePath(HWND hWnd) noexcept {
 	wil::unique_process_handle hProc = GetWindowProcessHandle(hWnd);
 	if (!hProc) {
 		Logger::Get().Error("GetWindowProcessHandle 失败");
@@ -86,7 +87,7 @@ std::wstring Win32Helper::GetWindowPath(HWND hWnd) noexcept {
 }
 
 std::wstring Win32Helper::GetWindowExeName(HWND hWnd) noexcept {
-	std::wstring path = GetWindowPath(hWnd);
+	std::wstring path = GetWindowExePath(hWnd);
 
 	const size_t delimPos = path.find_last_of(L'\\');
 	if (delimPos != std::wstring::npos) {
@@ -323,7 +324,7 @@ bool Win32Helper::ReadFile(const wchar_t* fileName, std::vector<uint8_t>& result
 	return true;
 }
 
-bool Win32Helper::WriteFile(const wchar_t* fileName, std::span<uint8_t> buffer) noexcept {
+bool Win32Helper::WriteFile(const wchar_t* fileName, std::span<const uint8_t> data) noexcept {
 	Logger::Get().Info(StrHelper::Concat("写入文件: ", StrHelper::UTF16ToUTF8(fileName)));
 
 	CREATEFILE2_EXTENDED_PARAMETERS extendedParams{
@@ -337,10 +338,23 @@ bool Win32Helper::WriteFile(const wchar_t* fileName, std::span<uint8_t> buffer) 
 		return false;
 	}
 
+	if (!WriteFile(hFile.get(), data)) {
+		Logger::Get().Error("Win32Helper::WriteFile 失败");
+		return false;
+	}
+
+	return true;
+}
+
+bool Win32Helper::WriteFile(HANDLE hFile, std::span<const uint8_t> data) noexcept {
 	DWORD written;
-	if (!::WriteFile(hFile.get(), buffer.data(), (DWORD)buffer.size(), &written, nullptr)
-		|| written < buffer.size()) {
+	if (!::WriteFile(hFile, data.data(), (DWORD)data.size(), &written, nullptr)) {
 		Logger::Get().Win32Error("WriteFile 失败");
+		return false;
+	}
+
+	if (written < data.size()) {
+		Logger::Get().Error("WriteFile 未写入全部数据");
 		return false;
 	}
 
@@ -400,6 +414,7 @@ bool Win32Helper::DirExists(const wchar_t* fileName) noexcept {
 bool Win32Helper::CreateDir(const std::wstring& path, bool recursive) noexcept {
 	assert(!path.empty() && path.find(L'/') == std::wstring::npos);
 	
+	// DirExists 检查很重要，CreateDirectory 可能会由于权限问题失败，此时错误码是 ERROR_ACCESS_DENIED
 	if (DirExists(path.c_str())) {
 		return true;
 	}
@@ -408,6 +423,8 @@ bool Win32Helper::CreateDir(const std::wstring& path, bool recursive) noexcept {
 		// 创建中间目录
 		size_t searchOffset = 0;
 		std::wstring subDir;
+		subDir.reserve(path.size());
+
 		while (true) {
 			size_t segPos = path.find(L'\\', searchOffset);
 			if (segPos == std::wstring::npos) {
@@ -420,6 +437,11 @@ bool Win32Helper::CreateDir(const std::wstring& path, bool recursive) noexcept {
 			}
 
 			subDir = path.substr(0, segPos);
+
+			if (DirExists(subDir.c_str())) {
+				continue;
+			}
+
 			if (!CreateDirectory(subDir.c_str(), nullptr) && GetLastError() != ERROR_ALREADY_EXISTS) {
 				Logger::Get().Win32Error("CreateDirectory 失败");
 				return false;
@@ -734,6 +756,46 @@ bool Win32Helper::GetWindowIntegrityLevel(HWND hWnd, DWORD& integrityLevel) noex
 	return GetProcessIntegrityLevel(hQueryToken.get(), integrityLevel);
 }
 
+std::wstring Win32Helper::GetProcessDescriptionFromWindow(HWND hWnd) noexcept {
+	// 移植自 https://github.com/dotnet/runtime/blob/4a63cb28b69e1c48bccf592150be7ba297b67950/src/libraries/System.Diagnostics.FileVersionInfo/src/System/Diagnostics/FileVersionInfo.Windows.cs
+	std::wstring fileName = GetWindowExePath(hWnd);
+	if (fileName.empty()) {
+		Logger::Get().Error("GetWindowExePath 失败");
+		return {};
+	}
+
+	DWORD dummy;
+	DWORD infoSize = GetFileVersionInfoSizeEx(FILE_VER_GET_LOCALISED, fileName.c_str(), &dummy);
+	if (infoSize == 0) {
+		Logger::Get().Win32Error("GetFileVersionInfoSizeEx 失败");
+		return {};
+	}
+
+	ByteBuffer infoData(infoSize);
+	if (!GetFileVersionInfoEx(FILE_VER_GET_LOCALISED, fileName.c_str(), 0, infoSize, infoData.Data())) {
+		Logger::Get().Win32Error("GetFileVersionInfoEx 失败");
+		return {};
+	}
+
+	std::wstring codePage;
+	uint8_t* langId = nullptr;
+	uint32_t len;
+	if (VerQueryValue(infoData.Data(), L"\\VarFileInfo\\Translation", (void**)&langId, &len)) {
+		codePage = fmt::format(L"{:08X}", uint32_t((*(uint16_t*)langId << 16) | *(uint16_t*)(langId + 2)));
+	} else {
+		codePage = L"040904E4";
+	}
+
+	wchar_t* description = nullptr;
+	std::wstring descPath = StrHelper::Concat(L"\\StringFileInfo\\", codePage, L"\\FileDescription");
+	if (!VerQueryValue(infoData.Data(), descPath.c_str(), (void**)&description, &len)) {
+		Logger::Get().Win32Error("VerQueryValue 失败");
+		return {};
+	}
+
+	return description;
+}
+
 static winrt::com_ptr<IShellView> FindDesktopFolderView() noexcept {
 	winrt::com_ptr<IShellWindows> shellWindows =
 		winrt::try_create_instance<IShellWindows>(CLSID_ShellWindows, CLSCTX_LOCAL_SERVER);
@@ -771,7 +833,7 @@ static winrt::com_ptr<IShellView> FindDesktopFolderView() noexcept {
 	return shellView;
 }
 
-static winrt::com_ptr<IShellFolderViewDual> GetDesktopAutomationObject() noexcept {
+static winrt::com_ptr<IShellDispatch2> GetShellDispatch() noexcept {
 	winrt::com_ptr<IShellView> shellView = FindDesktopFolderView();
 	if (!shellView) {
 		Logger::Get().Error("FindDesktopFolderView 失败");
@@ -785,35 +847,38 @@ static winrt::com_ptr<IShellFolderViewDual> GetDesktopAutomationObject() noexcep
 		return nullptr;
 	}
 
-	return dispatch.try_as<IShellFolderViewDual>();
-}
+	winrt::com_ptr<IShellFolderViewDual> folderView = dispatch.try_as<IShellFolderViewDual>();
+	if (!folderView) {
+		Logger::Get().Error("获取 IShellFolderViewDual 失败");
+		return nullptr;
+	}
 
-static std::wstring_view ExtractDirectory(std::wstring_view path) noexcept {
-	size_t delimPos = path.find_last_of(L'\\');
-	return delimPos == std::wstring_view::npos ? path : path.substr(0, delimPos + 1);
-}
+	hr = folderView->get_Application(dispatch.put());
+	if (FAILED(hr)) {
+		Logger::Get().ComError("IShellFolderViewDual::get_Application 失败", hr);
+		return nullptr;
+	}
 
-// 在提升的进程中启动未提升的进程
-// 原理见 https://devblogs.microsoft.com/oldnewthing/20131118-00/?p=2643
-static bool OpenNonElevated(const wchar_t* path, const wchar_t* parameters) noexcept {
-	static winrt::com_ptr<IShellDispatch2> shellDispatch = ([]() -> winrt::com_ptr<IShellDispatch2> {
-		winrt::com_ptr<IShellFolderViewDual> folderView = GetDesktopAutomationObject();
-		if (!folderView) {
-			Logger::Get().Error("GetDesktopAutomationObject 失败");
-			return nullptr;
-		}
-
-		winrt::com_ptr<IDispatch> dispatch;
-		HRESULT hr = folderView->get_Application(dispatch.put());
-		if (FAILED(hr)) {
-			Logger::Get().ComError("IShellFolderViewDual::get_Application 失败", hr);
-			return nullptr;
-		}
-
-		return dispatch.try_as<IShellDispatch2>();
-	})();
-
+	winrt::com_ptr<IShellDispatch2> shellDispatch = dispatch.try_as<IShellDispatch2>();
 	if (!shellDispatch) {
+		Logger::Get().ComError("获取 IShellDispatch2 失败", hr);
+		return nullptr;
+	}
+
+	return shellDispatch;
+}
+
+// 在提升的进程中启动未提升的进程。原理见
+// https://devblogs.microsoft.com/oldnewthing/20131118-00/?p=2643
+static bool ShellOpenNonElevated(
+	const wchar_t* path,
+	std::wstring_view parameters = {},
+	std::wstring_view workingDir = {}
+) noexcept {
+	// 不缓存这个接口，因为它会在资源管理器重启后失效
+	winrt::com_ptr<IShellDispatch2> shellDispatch = GetShellDispatch();
+	if (!shellDispatch) {
+		Logger::Get().Error("GetShellDispatch 失败");
 		return false;
 	}
 
@@ -822,8 +887,8 @@ static bool OpenNonElevated(const wchar_t* path, const wchar_t* parameters) noex
 	HRESULT hr = shellDispatch->ShellExecute(
 #pragma pop_macro("ShellExecute")
 		wil::make_bstr_nothrow(path).get(),
-		Win32Helper::Variant(parameters ? parameters : L""),
-		Win32Helper::Variant(ExtractDirectory(path)),
+		Win32Helper::Variant(parameters),
+		Win32Helper::Variant(workingDir),
 		Win32Helper::Variant(L"open"),
 		Win32Helper::Variant(SW_SHOWNORMAL)
 	);
@@ -835,27 +900,31 @@ static bool OpenNonElevated(const wchar_t* path, const wchar_t* parameters) noex
 	return true;
 }
 
-bool Win32Helper::ShellOpen(const wchar_t* path, const wchar_t* parameters, bool nonElevated) noexcept {
-	if (nonElevated && IsProcessElevated()) {
-		if (OpenNonElevated(path, parameters)) {
+static bool ShellOpen(
+	const wchar_t* path,
+	wil::zwstring_view parameters = {},
+	wil::zwstring_view workingDir = {},
+	bool inheritAuthority = false,
+	bool noAsync = false
+) noexcept {
+	if (!inheritAuthority && Win32Helper::IsProcessElevated()) {
+		if (ShellOpenNonElevated(path, parameters, workingDir)) {
 			return true;
 		}
-		// OpenNonElevated 失败则回落到 ShellExecuteEx
+		// ShellOpenNonElevated 失败则回落到 ShellExecuteEx
 	}
 
-	// 指定工作目录为程序所在目录，否则某些程序不能正常运行
-	std::wstring workingDir(ExtractDirectory(path));
-
-	SHELLEXECUTEINFO execInfo{
+	// ShellExecuteEx 在检查工作目录前会先检查注册表 App Paths 和一些系统目录，因此 path
+	// 应是绝对路径以避免歧义。
+	SHELLEXECUTEINFO execInfo = {
 		.cbSize = sizeof(execInfo),
-		.fMask = SEE_MASK_ASYNCOK,
+		.fMask = ULONG(noAsync ? SEE_MASK_NOASYNC : SEE_MASK_ASYNCOK),
 		.lpVerb = L"open",
 		.lpFile = path,
-		.lpParameters = parameters,
-		.lpDirectory = workingDir.c_str(),
+		.lpParameters = parameters.c_str(),
+		.lpDirectory = workingDir.empty() ? nullptr : workingDir.c_str(),
 		.nShow = SW_SHOWNORMAL
 	};
-
 	if (!ShellExecuteEx(&execInfo)) {
 		Logger::Get().Win32Error("ShellExecuteEx 失败");
 		return false;
@@ -864,11 +933,33 @@ bool Win32Helper::ShellOpen(const wchar_t* path, const wchar_t* parameters, bool
 	return true;
 }
 
-bool Win32Helper::OpenFolderAndSelectFile(const wchar_t* fileName) noexcept {
+bool Win32Helper::LaunchExe(
+	const std::filesystem::path& path,
+	wil::zwstring_view parameters,
+	bool inheritAuthority,
+	bool noAsync
+) noexcept {
+	assert(path.is_absolute());
+	// 指定工作目录为程序所在目录，否则某些程序不能正常运行
+	return ShellOpen(path.c_str(), parameters, path.parent_path(), inheritAuthority, noAsync);
+}
+
+bool Win32Helper::OpenUrl(wil::zwstring_view url, bool noAsync) noexcept {
+	return ShellOpen(url.c_str(), {}, {}, false, noAsync);
+}
+
+bool Win32Helper::OpenFolder(const std::filesystem::path& path, bool noAsync) noexcept {
+	assert(path.is_absolute());
+	return ShellOpen(path.c_str(), {}, {}, false, noAsync);
+}
+
+bool Win32Helper::OpenFolderAndSelectFile(const std::filesystem::path& fileName) noexcept {
+	assert(fileName.is_absolute());
+
 	// 根据 https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shparsedisplayname，
 	// SHParseDisplayName 不能在主线程调用
 	wil::unique_any<PIDLIST_ABSOLUTE, decltype(&CoTaskMemFree), CoTaskMemFree> pidl;
-	HRESULT hr = SHParseDisplayName(fileName, nullptr, pidl.put(), 0, nullptr);
+	HRESULT hr = SHParseDisplayName(fileName.c_str(), nullptr, pidl.put(), 0, nullptr);
 	if (FAILED(hr)) {
 		Logger::Get().ComError("SHParseDisplayName 失败", hr);
 		return false;

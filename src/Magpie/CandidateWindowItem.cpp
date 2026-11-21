@@ -3,12 +3,13 @@
 #if __has_include("CandidateWindowItem.g.cpp")
 #include "CandidateWindowItem.g.cpp"
 #endif
-#include "Win32Helper.h"
-#include "AppXReader.h"
-#include "IconHelper.h"
-#include "StrHelper.h"
 #include "App.h"
+#include "AppXReader.h"
+#include "ByteBuffer.h"
+#include "IconHelper.h"
 #include "MainWindow.h"
+#include "StrHelper.h"
+#include "Win32Helper.h"
 
 using namespace ::Magpie;
 using namespace winrt;
@@ -20,53 +21,12 @@ using namespace Windows::Graphics::Display;
 
 namespace winrt::Magpie::implementation {
 
-static std::wstring GetProcessDesc(HWND hWnd) {
-	if (Win32Helper::GetWindowClassName(hWnd) == L"ApplicationFrameWindow") {
-		// 跳过 UWP 窗口
-		return {};
-	}
-
-	// 移植自 https://github.com/dotnet/runtime/blob/4a63cb28b69e1c48bccf592150be7ba297b67950/src/libraries/System.Diagnostics.FileVersionInfo/src/System/Diagnostics/FileVersionInfo.Windows.cs
-	std::wstring fileName = Win32Helper::GetWindowPath(hWnd);
-	if (fileName.empty()) {
-		return {};
-	}
-
-	DWORD dummy;
-	DWORD infoSize = GetFileVersionInfoSizeEx(FILE_VER_GET_LOCALISED, fileName.c_str(), &dummy);
-	if (infoSize == 0) {
-		return {};
-	}
-
-	std::unique_ptr<uint8_t[]> infoData = std::make_unique<uint8_t[]>(infoSize);
-	if (!GetFileVersionInfoEx(FILE_VER_GET_LOCALISED, fileName.c_str(), 0, infoSize, infoData.get())) {
-		return {};
-	}
-
-	std::wstring codePage;
-	uint8_t* langId = nullptr;
-	uint32_t len;
-	if (VerQueryValue(infoData.get(), L"\\VarFileInfo\\Translation", (void**)&langId, &len)) {
-		codePage = fmt::format(L"{:08X}", uint32_t((*(uint16_t*)langId << 16) | *(uint16_t*)(langId + 2)));
-	} else {
-		codePage = L"040904E4";
-	}
-
-	wchar_t* description = nullptr;
-	std::wstring descPath = fmt::format(L"\\StringFileInfo\\{}\\FileDescription", codePage);
-	if (!VerQueryValue(infoData.get(), descPath.c_str(), (void**)&description, &len)) {
-		return {};
-	}
-
-	return description;
-}
-
 CandidateWindowItem::CandidateWindowItem(HWND hWnd) {
 	_title = Win32Helper::GetWindowTitle(hWnd);
 	_defaultProfileName = _title;
 
 	_className = Win32Helper::GetWindowClassName(hWnd);
-	_path = Win32Helper::GetWindowPath(hWnd);
+	_path = Win32Helper::GetWindowExePath(hWnd);
 
 	MUXC::ImageIcon placeholder;
 	placeholder.Width(16);
@@ -99,13 +59,17 @@ fire_and_forget CandidateWindowItem::_ResolveWindow(bool resolveIcon, bool resol
 
 	auto weakThis = get_weak();
 
+	uint32_t dpi = App::Get().MainWindow().GetDpi();
+	bool isDarkTheme = App::Get().IsDarkTheme();
+
 	// 解析名称和图标非常耗时，转到后台进行
 	co_await resume_background();
 
 	AppXReader reader;
 	const bool isPackaged = reader.Initialize(hWnd);
 	if (resolveName) {
-		std::wstring defaultProfileName = isPackaged ? reader.GetDisplayName() : GetProcessDesc(hWnd);
+		std::wstring defaultProfileName =
+			isPackaged ? reader.GetDisplayName() : Win32Helper::GetProcessDescriptionFromWindow(hWnd);
 		StrHelper::Trim(defaultProfileName);
 
 		auto strongThis = weakThis.get();
@@ -132,12 +96,10 @@ fire_and_forget CandidateWindowItem::_ResolveWindow(bool resolveIcon, bool resol
 	}
 
 	SoftwareBitmap iconBitmap{ nullptr };
-	const uint32_t iconSize = (uint32_t)std::lround(
-		16 * App::Get().MainWindow().CurrentDpi() / double(USER_DEFAULT_SCREEN_DPI));
+	const uint32_t iconSize = (uint32_t)std::lround(16 * dpi / double(USER_DEFAULT_SCREEN_DPI));
 
 	if (isPackaged) {
-		std::variant<std::wstring, SoftwareBitmap> uwpIcon =
-			reader.GetIcon(iconSize, App::Get().IsLightTheme(), true);
+		std::variant<std::wstring, SoftwareBitmap> uwpIcon = reader.GetIcon(iconSize, isDarkTheme, true);
 		if (uwpIcon.index() == 1) {
 			iconBitmap = std::get<1>(uwpIcon);
 		}

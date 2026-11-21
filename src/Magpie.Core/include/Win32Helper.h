@@ -2,6 +2,7 @@
 #include "Logger.h"
 #include "StrHelper.h"
 #include "Version.h"
+#include <wil/stl.h>
 
 namespace Magpie {
 
@@ -43,7 +44,7 @@ struct Win32Helper {
 
 	static wil::unique_process_handle GetWindowProcessHandle(HWND hWnd) noexcept;
 
-	static std::wstring GetWindowPath(HWND hWnd) noexcept;
+	static std::wstring GetWindowExePath(HWND hWnd) noexcept;
 
 	static std::wstring GetWindowExeName(HWND hWnd) noexcept;
 
@@ -62,7 +63,9 @@ struct Win32Helper {
 
 	static bool ReadFile(const wchar_t* fileName, std::vector<uint8_t>& result) noexcept;
 
-	static bool WriteFile(const wchar_t* fileName, std::span<uint8_t> buffer) noexcept;
+	static bool WriteFile(const wchar_t* fileName, std::span<const uint8_t> data) noexcept;
+
+	static bool WriteFile(HANDLE hFile, std::span<const uint8_t> data) noexcept;
 
 	static bool ReadTextFile(const wchar_t* fileName, std::string& result) noexcept;
 
@@ -125,6 +128,9 @@ struct Win32Helper {
 
 	static bool GetWindowIntegrityLevel(HWND hWnd, DWORD& integrityLevel) noexcept;
 
+	// 始终使用 OS 的当前代码页
+	static std::wstring GetProcessDescriptionFromWindow(HWND hWnd) noexcept;
+
 	// VARIANT 封装，自动管理生命周期，比 WIL 提供更多功能
 	struct Variant : public VARIANT {
 		Variant() noexcept {
@@ -180,20 +186,31 @@ struct Win32Helper {
 		}
 	};
 
-	static bool ShellOpen(const wchar_t* path, const wchar_t* parameters = nullptr, bool nonElevated = true) noexcept;
+	// path 必须是绝对路径以避免歧义
+	static bool LaunchExe(
+		const std::filesystem::path& path,
+		wil::zwstring_view parameters = {},
+		bool inheritAuthority = false,
+		bool noAsync = false
+	) noexcept;
 
-	// 不应在主线程调用。fileName 必须是绝对路径。
-	static bool OpenFolderAndSelectFile(const wchar_t* fileName) noexcept;
+	static bool OpenUrl(wil::zwstring_view url, bool noAsync = false) noexcept;
+
+	// path 必须是绝对路径以避免歧义
+	static bool OpenFolder(const std::filesystem::path& path, bool noAsync = false) noexcept;
+
+	// 不应在主线程调用，此外 fileName 必须是绝对路径
+	static bool OpenFolderAndSelectFile(const std::filesystem::path& fileName) noexcept;
 
 	static const std::filesystem::path& GetExePath() noexcept;
 
 	template<typename T, std::enable_if_t<std::is_function_v<T>, int> = 0>
-	static T* LoadFunction(const wchar_t* dllName, const char* funcName) noexcept {
-		assert(dllName && funcName);
+	static T* LoadFunction(wil::zwstring_view dllName, const char* funcName) noexcept {
+		assert(!dllName.empty() && funcName);
 
-		HMODULE hMod = GetModuleHandle(dllName);
+		HMODULE hMod = GetModuleHandle(dllName.c_str());
 		if (!hMod) {
-			hMod = LoadLibraryEx(dllName, NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+			hMod = LoadLibraryEx(dllName.c_str(), NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 			if (!hMod) {
 				Logger::Get().Win32Error(fmt::format("加载 {} 失败",
 					StrHelper::UTF16ToUTF8(dllName)));

@@ -3,8 +3,8 @@
 #if __has_include("PageFrame.g.cpp")
 #include "PageFrame.g.cpp"
 #endif
-#include "XamlHelper.h"
 #include "App.h"
+#include "XamlHelper.h"
 
 using namespace ::Magpie;
 using namespace winrt;
@@ -14,61 +14,23 @@ using namespace Windows::UI::Text;
 
 namespace winrt::Magpie::implementation {
 
+DependencyProperty PageFrame::_titleProperty{ nullptr };
+DependencyProperty PageFrame::_iconProperty{ nullptr };
+DependencyProperty PageFrame::_headerActionProperty{ nullptr };
+DependencyProperty PageFrame::_mainContentProperty{ nullptr };
+
 void PageFrame::InitializeComponent() {
+	_RegisterDependencyProperties();
+
 	PageFrameT::InitializeComponent();
 
-	_UpdateIconContainer();
-	_UpdateHeaderActionPresenter();
-}
-
-void PageFrame::Title(hstring value) {
-	if (_title == value) {
-		return;
-	}
-
-	_title = std::move(value);
-	RaisePropertyChanged(L"Title");
-}
-
-void PageFrame::Icon(IconElement value) {
-	if (_icon == value) {
-		return;
-	}
-
-	if (value) {
-		value.Width(28);
-		value.Height(28);
-	}
-
-	_icon = std::move(value);
-	RaisePropertyChanged(L"Icon");
-
-	_UpdateIconContainer();
-}
-
-void PageFrame::HeaderAction(FrameworkElement value) {
-	if (_headerAction == value) {
-		return;
-	}
-
-	_headerAction = std::move(value);
-	RaisePropertyChanged(L"HeaderAction");
-
-	_UpdateHeaderActionPresenter();
-}
-
-void PageFrame::MainContent(IInspectable value) {
-	if (_mainContent == value) {
-		return;
-	}
-
-	_mainContent = std::move(value);
-	RaisePropertyChanged(L"HeaderAction");
+	_OnIconContainerChanged();
+	_OnHeaderActionChanged();
 }
 
 void PageFrame::Loaded(IInspectable const&, RoutedEventArgs const&) {
 	// Win10 中更新 ToolTip 的主题
-	XamlHelper::UpdateThemeOfTooltips(*this, App::Get().IsLightTheme() ? ElementTheme::Light : ElementTheme::Dark);
+	XamlHelper::UpdateThemeOfTooltips(*this, App::Get().IsDarkTheme() ? ElementTheme::Dark : ElementTheme::Light);
 }
 
 void PageFrame::SizeChanged(IInspectable const&, SizeChangedEventArgs const& e) {
@@ -113,12 +75,62 @@ void PageFrame::ScrollViewer_KeyDown(IInspectable const& sender, KeyRoutedEventA
 	}
 }
 
-void PageFrame::_UpdateIconContainer() {
-	IconContainer().Visibility(_icon ? Visibility::Visible : Visibility::Collapsed);
+void PageFrame::_RegisterDependencyProperties() {
+	if (_titleProperty) {
+		return;
+	}
+
+	_titleProperty = DependencyProperty::Register(
+		L"Title",
+		xaml_typename<hstring>(),
+		xaml_typename<class_type>(),
+		nullptr
+	);
+
+	_iconProperty = DependencyProperty::Register(
+		L"Icon",
+		xaml_typename<IconElement>(),
+		xaml_typename<class_type>(),
+		PropertyMetadata(nullptr, [](DependencyObject const& sender, DependencyPropertyChangedEventArgs const&) {
+			get_self<PageFrame>(sender.try_as<class_type>())->_OnIconContainerChanged();
+		})
+	);
+
+	_headerActionProperty = DependencyProperty::Register(
+		L"HeaderAction",
+		xaml_typename<FrameworkElement>(),
+		xaml_typename<class_type>(),
+		PropertyMetadata(nullptr, [](DependencyObject const& sender, DependencyPropertyChangedEventArgs const&) {
+			get_self<PageFrame>(sender.try_as<class_type>())->_OnHeaderActionChanged();
+		})
+	);
+
+	_mainContentProperty = DependencyProperty::Register(
+		L"MainContent",
+		xaml_typename<IInspectable>(),
+		xaml_typename<class_type>(),
+		PropertyMetadata(nullptr, [](DependencyObject const& sender, DependencyPropertyChangedEventArgs const&) {
+			get_self<PageFrame>(sender.try_as<class_type>())->_OnMainContentChanged();
+		})
+	);
 }
 
-void PageFrame::_UpdateHeaderActionPresenter() {
-	HeaderActionPresenter().Visibility(_headerAction ? Visibility::Visible : Visibility::Collapsed);
+void PageFrame::_OnIconContainerChanged() {
+	IconContainer().Visibility(Icon() ? Visibility::Visible : Visibility::Collapsed);
+}
+
+void PageFrame::_OnHeaderActionChanged() {
+	HeaderActionPresenter().Visibility(HeaderAction() ? Visibility::Visible : Visibility::Collapsed);
+}
+
+void PageFrame::_OnMainContentChanged() {
+	static double pageMaxWidth =
+		Resources().TryLookup(box_value(L"PageMaxWidth")).try_as<double>().value();
+
+	// 如果在 ContentControl 上设置 MaxWidth，如果页面根元素是 Grid 可能会有布局错误
+	if (FrameworkElement content = MainContent().try_as<FrameworkElement>()) {
+		content.MaxWidth(pageMaxWidth);
+	}
 }
 
 }
