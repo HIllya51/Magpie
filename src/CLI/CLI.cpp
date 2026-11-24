@@ -495,16 +495,23 @@ int WINAPI wWinMain(
     // Sleep(100);
     auto magstart = [argv, &magrt](WPARAM wp, LPARAM lp, bool windowed = false) { 
 		auto targethwnd = (HWND)lp;
-		auto config = nlohmann::json::parse(std::ifstream(argv[0]));
-		int profileindex = (int)wp;
-		auto options = LoadMagOptions(config, profileindex);
-		if (!options)return;
-		if (windowed) {
-			options.value().IsWindowedMode(true);
-			options.value().Is3DGameMode(false);
+		try
+		{
+			auto config = nlohmann::json::parse(std::ifstream(argv[0]));
+			int profileindex = (int)wp;
+			auto options = LoadMagOptions(config, profileindex);
+			if (!options)return;
+			if (windowed) {
+				options.value().IsWindowedMode(true);
+				options.value().Is3DGameMode(false);
+			}
+			SetForegroundWindow(targethwnd);
+			magrt.Start(targethwnd, std::move(options.value()), true);  
 		}
-		SetForegroundWindow(targethwnd);
-		magrt.Start(targethwnd, std::move(options.value()), true);  
+		catch(std::exception& e)
+		{
+			MessageBoxA(0, e.what(), "", 0);
+		}
 	};
     _msgwindow.registmessage(Magpie_Core_CLI_Message_Start, magstart);
     _msgwindow.registmessage(Magpie_Core_CLI_Message_Start_WindowedMode, [&](WPARAM wp, LPARAM lp) {magstart(wp, lp, true); });
