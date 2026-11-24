@@ -183,14 +183,6 @@ std::filesystem::path ScreenshotsDir(const std::filesystem::path& _screenshotsDi
 
 
 void LoadOverlayOptions(ScalingOptions& options, const nlohmann::json& config) {
-    std::filesystem::path _screenshotsDir = StrHelper::UTF8ToUTF16(config["screenshotsDir"]);
-    options.screenshotsDir = ScreenshotsDir(_screenshotsDir);
-    if (options.screenshotsDir.empty()) {
-        // 回落到使用当前目录
-        options.screenshotsDir = L".";
-    }
-    options.fullscreenInitialToolbarState = config["fullscreenInitialToolbarState"];
-    options.windowedInitialToolbarState = config["windowedInitialToolbarState"];
     // 与主程序默认快捷键一致
     options.overlayOptions.scaleShortcut = config.value("scaleShortcut", "Alt+Shift+A");
     options.overlayOptions.windowedModeScaleShortcut = config.value("windowedModeScaleShortcut", "Alt+Shift+Q");
@@ -305,6 +297,12 @@ std::optional<ScalingOptions> LoadMagOptions(const nlohmann::json& config, int p
     options.IsAdjustCursorSpeed(profile["adjustCursorSpeed"]);
     options.IsDirectFlipDisabled(profile["disableDirectFlip"]);
 
+    std::filesystem::path _screenshotsDir = StrHelper::UTF8ToUTF16(profile["screenshotsDir"]);
+    options.screenshotsDir = ScreenshotsDir(_screenshotsDir);
+    if (options.screenshotsDir.empty()) {
+        // 回落到使用当前目录
+        options.screenshotsDir = L".";
+    }
     LoadOverlayOptions(options, config["overlay"]);
     options.showToast = [](HWND hwndTarget, std::wstring_view title, std::wstring_view msg) noexcept {
         PostMessage(HWND_BROADCAST, Magpie_Core_CLI_ToastMessage, 
